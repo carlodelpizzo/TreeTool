@@ -45,6 +45,14 @@ class Node:
         pygame.draw.circle(screen, blue, (self.x, self.y), 10)
 
 
+class Edge:
+    def __init__(self):
+        pass
+
+    def draw(self):
+        pass
+
+
 class Tree:
     def __init__(self):
         self.nodes = []
@@ -53,11 +61,13 @@ class Tree:
     def draw_tree(self):
         for node in self.nodes:
             node.draw()
+        for edge in self.edges:
+            edge.draw()
 
 
 class Button:
-    def __init__(self, x: int, y: int, label: str, padding=5, border_width=3, border_color=None,
-                 button_color=None, font=default_font, font_size=20, font_color=None, action=None):
+    def __init__(self, x: int, y: int, label: str, padding=5, border_width=3, border_color=None, border_off=False,
+                 button_color=None, font=default_font, font_size=20, font_color=None, action=None, highlight=False):
         if action is None:
             self.action = ''
         else:
@@ -80,9 +90,11 @@ class Button:
         self.border = border_width
         self.border_color = border_color
         self.border_color_pressed = blue
+        self.border_off = border_off
         self.run = False
         self.pressed = False
         self.pressed_draw = False
+        self.highlight_when_hover = highlight
 
     def draw(self):
         if not self.pressed_draw:
@@ -97,19 +109,20 @@ class Button:
             screen.blit(self.pressed_label, (self.x + self.padding, self.y + self.padding))
 
     def draw_border(self):
-        if not self.pressed_draw:
-            pygame.draw.rect(screen, self.border_color, (self.x, self.y, self.border, self.height))
-            pygame.draw.rect(screen, self.border_color, (self.x, self.y, self.width, self.border))
-            pygame.draw.rect(screen, self.border_color, (self.x, self.y + self.height - self.border, self.width,
-                                                         self.border))
-            pygame.draw.rect(screen, self.border_color, (self.x + self.width - self.border,
-                                                         self.y, self.border, self.height))
-        else:
-            pygame.draw.rect(screen, self.border_color_pressed, (self.x, self.y, self.border, self.height))
-            pygame.draw.rect(screen, self.border_color_pressed, (self.x, self.y, self.width, self.border))
-            pygame.draw.rect(screen, self.border_color_pressed, (self.x, self.y + self.height - self.border,
-                                                                 self.width, self.border))
-            pygame.draw.rect(screen, self.border_color_pressed, (self.x + self.width - self.border,
+        if not self.border_off:
+            if not self.pressed_draw:
+                pygame.draw.rect(screen, self.border_color, (self.x, self.y, self.border, self.height))
+                pygame.draw.rect(screen, self.border_color, (self.x, self.y, self.width, self.border))
+                pygame.draw.rect(screen, self.border_color, (self.x, self.y + self.height - self.border, self.width,
+                                                             self.border))
+                pygame.draw.rect(screen, self.border_color, (self.x + self.width - self.border,
+                                                             self.y, self.border, self.height))
+            else:
+                pygame.draw.rect(screen, self.border_color_pressed, (self.x, self.y, self.border, self.height))
+                pygame.draw.rect(screen, self.border_color_pressed, (self.x, self.y, self.width, self.border))
+                pygame.draw.rect(screen, self.border_color_pressed, (self.x, self.y + self.height - self.border,
+                                                                     self.width, self.border))
+                pygame.draw.rect(screen, self.border_color_pressed, (self.x + self.width - self.border,
                                                                  self.y, self.border, self.height))
 
     def check_collide(self, pos: tuple):
@@ -135,6 +148,12 @@ class Button:
         elif pressed == 'up':
             if collided and self.pressed and not mouse[0]:
                 self.run = True
+
+        if self.highlight_when_hover:
+            if collided:
+                self.pressed_draw = True
+            else:
+                self.pressed_draw = False
 
     def update_pos(self, pos: tuple):
         self.x = pos[0]
@@ -169,13 +188,12 @@ class TextBox:
         self.text_input_counter = 0
 
     def draw(self):
-        # Draw Label
-        screen.blit(self.font.render(self.label + ':', True, self.color),
-                    (self.x, self.y + self.padding))
-        # Draw background
-        pygame.draw.rect(screen, self.bg_color, (self.x + self.label_offset, self.y, self.width, self.height))
+        # Background
+        pygame.draw.rect(screen, self.bg_color, (self.x, self.y, self.width + self.label_offset, self.height))
 
-        # Draw border
+        # Label
+        screen.blit(self.font.render(self.label + ':', True, self.color), (self.x, self.y + self.padding))
+
         # Left edge
         pygame.draw.rect(screen, self.border_color, (self.x + self.label_offset, self.y, self.border_width,
                                                      self.height))
@@ -189,7 +207,7 @@ class TextBox:
         pygame.draw.rect(screen, self.border_color, (self.x + self.label_offset + self.width - self.border_width,
                                                      self.y, self.border_width, self.height))
 
-        # Draw text
+        # Text
         screen.blit(self.font.render(self.text, True, self.color), (self.x + self.label_offset + self.padding,
                                                                     self.y + self.padding))
 
@@ -252,6 +270,15 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         # Left click
         if mouse_buttons[0]:
             left_mouse_held = True
+
+            node_click = False
+            for node in tree.nodes:
+                if node.x - 7 <= mouse_pos[0] <= node.x + 7 and node.y - 7 <= mouse_pos[1] <= node.y + 7:
+                    node_click = True
+                    break
+            if len(buttons) != 0:
+                if not buttons[0].check_collide(mouse_pos):
+                    buttons.pop(0)
 
             # Textboxes
             for box in text_boxes:
