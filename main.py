@@ -23,9 +23,10 @@ default_font = 'Helvetica'
 
 
 class Node:
-    def __init__(self, x_pos: int, y_pos: int, label: str, level: int, parents=None, children=None):
+    def __init__(self, x_pos: int, y_pos: int, label: str, level: int, parents=None, children=None, radius=10):
         self.x = x_pos
         self.y = y_pos
+        self.radius = radius
         self.label = label
         self.level = level
         if parents is None:
@@ -42,7 +43,7 @@ class Node:
         self.y = pos[1]
 
     def draw(self):
-        pygame.draw.circle(screen, blue, (self.x, self.y), 10)
+        pygame.draw.circle(screen, blue, (self.x, self.y), self.radius)
 
 
 class Edge:
@@ -66,7 +67,7 @@ class Tree:
 
 
 class Button:
-    def __init__(self, x: int, y: int, label: str, padding=5, border_width=3, border_color=None, border_off=False,
+    def __init__(self, x: int, y: int, label: str, padding=5, border_width=2, border_color=None, border_off=False,
                  button_color=None, font=default_font, font_size=20, font_color=None, action=None, highlight=False):
         if action is None:
             self.action = ''
@@ -123,7 +124,7 @@ class Button:
                 pygame.draw.rect(screen, self.border_color_pressed, (self.x, self.y + self.height - self.border,
                                                                      self.width, self.border))
                 pygame.draw.rect(screen, self.border_color_pressed, (self.x + self.width - self.border,
-                                                                 self.y, self.border, self.height))
+                                                                     self.y, self.border, self.height))
 
     def check_collide(self, pos: tuple):
         if self.x <= pos[0] <= self.x + self.width:
@@ -161,7 +162,7 @@ class Button:
 
 
 class TextBox:
-    def __init__(self, x_pos, y_pos, label='', text='', padding=5, border_width=3):
+    def __init__(self, x_pos, y_pos, label='', text='', padding=5, border_width=2, selected=False, clear_on_init=False):
         self.color = white
         self.bg_color = black
         self.border_color = self.color
@@ -182,10 +183,12 @@ class TextBox:
         self.width = self.min_width
         self.height = self.text_height + self.padding * 2
 
-        self.selected = True
+        self.selected = selected
         self.cursor_pos = self.text_width + self.x + self.padding + 2
         self.blink_counter = 0
         self.text_input_counter = 0
+        if clear_on_init:
+            self.update_text(character='clear', backspace=True)
 
     def draw(self):
         # Background
@@ -229,8 +232,11 @@ class TextBox:
                                                self.height - self.padding * 2))
 
     def update_text(self, character='', backspace=False):
-        self.text_input_counter = int(frame_rate * 1.5)
-        self.text += character
+        if character == 'clear' and backspace:
+            self.text = ''
+        else:
+            self.text += character
+            self.text_input_counter = int(frame_rate * 1.5)
         self.blink_counter = 0
         if backspace:
             self.text = self.text[:-1]
@@ -247,12 +253,60 @@ class TextBox:
                 return True
         return False
 
+    def update_pos(self, pos: tuple):
+        self.x = pos[0]
+        self.y = pos[1]
+        self.cursor_pos = self.text_width + self.x + self.padding + 2
+
 
 class Menu:
-    def __init__(self):
+    def __init__(self, items: list):
         self.x = 0
         self.y = 0
+        self.padding = 7
+        self.border_width = 2
         self.items = []
+
+        x_offset = 0
+        y_offset = 25
+        width = 0
+        for item in items:
+            if item[1] == 'text':
+                self.items.append(TextBox(self.x + x_offset + self.padding, self.y + y_offset + self.padding,
+                                          label=item[0], text=item[0], clear_on_init=True))
+                if self.items[len(self.items) - 1].width + self.items[len(self.items) - 1].label_offset > width:
+                    width = self.items[len(self.items) - 1].width + self.items[len(self.items) - 1].label_offset
+                y_offset += self.items[len(self.items) - 1].height + 3
+        self.width = width + self.padding * 2
+        self.height = y_offset + self.padding * 2 - 3
+        for item in self.items:
+            if item.x + item.width + item.label_offset != width:
+                item.width += width - item.width - item.label_offset
+                item.min_width = item.width
+
+    def draw(self):
+        for item in self.items:
+            item.draw()
+
+        # Left edge
+        pygame.draw.rect(screen, white, (self.x, self.y, self.border_width, self.height))
+        # Top edge
+        pygame.draw.rect(screen, white, (self.x, self.y, self.width, self.border_width))
+        # Bottom edge
+        pygame.draw.rect(screen, white, (self.x, self.y + self.height - self.border_width, self.width,
+                                         self.border_width))
+        # Right edge
+        pygame.draw.rect(screen, white, (self.x + self.width - self.border_width,
+                                         self.y, self.border_width, self.height))
+
+    def update_pos(self, pos: tuple):
+        x_offset = pos[0] - self.x
+        y_offset = pos[1] - self.y
+        self.x = pos[0]
+        self.y = pos[1]
+        for item in self.items:
+            new_pos = (item.x + x_offset, item.y + y_offset)
+            item.update_pos(new_pos)
 
 
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
@@ -261,26 +315,39 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global held_objects
     global buttons
     global text_boxes
+    global menu
 
     if event_type == 'down':
-        if len(held_objects) > 0:
-            for i in range(len(held_objects)):
-                tree.nodes.append(held_objects[i])
-            held_objects = []
         # Left click
         if mouse_buttons[0]:
             left_mouse_held = True
 
             node_click = False
+            # Left click node
             for node in tree.nodes:
-                if node.x - 7 <= mouse_pos[0] <= node.x + 7 and node.y - 7 <= mouse_pos[1] <= node.y + 7:
+                if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                     node_click = True
                     break
+            # Left click background
+            if not node_click:
+                # Place held object
+                if len(held_objects) > 0:
+                    for i in range(len(held_objects)):
+                        tree.nodes.append(held_objects[i])
+                    held_objects = []
+                # Select menu item
+                if menu is not None:
+                    for item in menu.items:
+                        item.blink_counter = 0
+                        item.selected = False
+                        if item.check_collide(mouse_pos):
+                            item.selected = True
+
             if len(buttons) != 0:
                 if not buttons[0].check_collide(mouse_pos):
                     buttons.pop(0)
 
-            # Textboxes
+            # Left click Textbox
             for box in text_boxes:
                 box.selected = False
                 box.blink_counter = 0
@@ -289,20 +356,31 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         # Right click
         if mouse_buttons[2]:
             right_mouse_held = True
+
             node_click = False
-            for node in tree.nodes:
-                if node.x - 7 <= mouse_pos[0] <= node.x + 7 and node.y - 7 <= mouse_pos[1] <= node.y + 7:
-                    node_click = True
-                    break
-            if not node_click:
-                if len(buttons) == 0:
-                    buttons.append(Button(mouse_pos[0], mouse_pos[1], 'Node', action='node'))
-                else:
-                    if buttons[0].check_collide(mouse_pos):
-                        buttons.pop(0)
+            # Right click to delete held object
+            if len(held_objects) > 0:
+                held_objects = []
+            else:
+                # Right click node
+                for node in tree.nodes:
+                    if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
+                        node_click = True
+
+                        menu = Menu([('Label', 'text'), ('Children', 'text')])
+                        offset_pos = (mouse_pos[0] + 7, mouse_pos[1])
+                        menu.update_pos(offset_pos)
+                        break
+                # Right click background
+                if not node_click:
+                    if len(buttons) == 0:
+                        buttons.append(Button(mouse_pos[0] + 7, mouse_pos[1], 'Node', action='node'))
                     else:
-                        buttons[0].x = mouse_pos[0]
-                        buttons[0].y = mouse_pos[1]
+                        if buttons[0].check_collide(mouse_pos):
+                            buttons.pop(0)
+                        else:
+                            buttons[0].x = mouse_pos[0] + 7
+                            buttons[0].y = mouse_pos[1]
     elif event_type == 'up':
         if not mouse_buttons[0]:
             left_mouse_held = False
@@ -327,11 +405,18 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         item.update_pos(mouse_pos)
         item.draw()
 
+    if menu is not None:
+        menu.draw()
+
 
 tree = Tree()
 buttons = []
-text_boxes = [TextBox(100, 100, label='Test', text='gabagool')]
+if len(buttons) < 0:
+    menu = Menu([])
+else:
+    menu = None
 held_objects = []
+text_boxes = []
 left_mouse_held = False
 right_mouse_held = False
 held_key = ''
@@ -372,6 +457,18 @@ while running:
                         held_key_event = event
                         key_hold_counter = frame_rate
                         textbox.update_text(event.unicode)
+            if menu is not None:
+                for textbox in menu.items:
+                    if textbox.selected:
+                        if keys[K_BACKSPACE]:
+                            held_key = 'backspace'
+                            key_hold_counter = frame_rate
+                            textbox.update_text(backspace=True)
+                        else:
+                            held_key = event.unicode
+                            held_key_event = event
+                            key_hold_counter = frame_rate
+                            textbox.update_text(event.unicode)
 
         # Key up events
         if event.type == pygame.KEYUP:
@@ -402,6 +499,14 @@ while running:
                 else:
                     textbox.update_text(held_key)
                 break
+        if menu is not None:
+            for textbox in menu.items:
+                if textbox.selected:
+                    if held_key == 'backspace':
+                        textbox.update_text(backspace=True)
+                    else:
+                        textbox.update_text(held_key)
+                    break
     elif key_hold_counter > 0:
         key_hold_counter -= 1
 
