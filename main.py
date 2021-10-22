@@ -355,6 +355,8 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global text_boxes
     global menu
     global tree
+    global draw_edge
+    global open_menu
 
     if event_type == 'down':
         # Left click
@@ -366,6 +368,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             for node in tree.nodes:
                 if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                     node_click = True
+                    node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
                     node.held = True
             # Left click background
             if not node_click:
@@ -398,10 +401,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             for node in tree.nodes:
                 if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                     node_click = True
-
-                    menu = Menu('node', node)
-                    offset_pos = (mouse_pos[0] + 7, mouse_pos[1])
-                    menu.update_pos(offset_pos)
+                    open_menu = True
                     break
             # Right click background
             if not node_click:
@@ -420,6 +420,14 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 node.held = False
         if not mouse_buttons[2]:
             right_mouse_held = False
+            for node in tree.nodes:
+                if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
+                    if open_menu:
+                        menu = Menu('node', node)
+                        offset_pos = (mouse_pos[0] + 7, mouse_pos[1])
+                        menu.update_pos(offset_pos)
+                        open_menu = False
+                    break
 
     # Button Actions
     pop_list = []
@@ -443,16 +451,23 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     if menu is not None:
         menu.draw()
 
+    # Edge drawing
+    if draw_edge:
+        pass
+
 
 tree = Tree()
-buttons = []
-if len(buttons) < 0:
+
+if len(integers) < 0:
     menu = Menu('', Node(0, 0, '', 0))
 else:
     menu = None
+buttons = []
 text_boxes = []
 left_mouse_held = False
 right_mouse_held = False
+draw_edge = False
+open_menu = False
 held_key = ''
 held_key_event = None
 key_hold_counter = 0
