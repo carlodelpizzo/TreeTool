@@ -18,11 +18,14 @@ black = [0, 0, 0]
 white = [255, 255, 255]
 red = [255, 0, 0]
 green = [0, 255, 0]
-blue = [10, 90, 255]
-grey = gray = [128, 128, 128]
-grid_color = [50, 50, 50]
+blue = [0, 200, 255]
+light_grey = [200, 200, 200]
+dark_grey = [75, 75, 75]
+grey = [128, 128, 128]
+
+bg_color = dark_grey
 # Font
-default_font = 'Helvetica'
+default_font = 'Georgia'
 
 integers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
@@ -90,17 +93,17 @@ class Edge:
     def draw(self):
         global debug
 
-        pygame.draw.line(screen, grey, (self.x, self.y), (self.end_x, self.end_y), self.width)
+        pygame.draw.line(screen, black, (self.x, self.y), (self.end_x, self.end_y), self.width)
         p = (0.4, 0.6)
         middle = (int(p[0] * self.x + p[1] * self.end_x), int(p[0] * self.y + p[1] * self.end_y))
         rotation = math.degrees(math.atan2(self.y - self.end_y, self.end_x - self.x)) + 90
         plus = 155
         times = 20
-        pygame.draw.polygon(screen, grey, (middle,
-                                           (int(middle[0] + times * math.sin(math.radians(rotation - plus))),
-                                            int(middle[1] + times * math.cos(math.radians(rotation - plus)))),
-                                           (int(middle[0] + times * math.sin(math.radians(rotation + plus))),
-                                            int(middle[1] + times * math.cos(math.radians(rotation + plus))))))
+        pygame.draw.polygon(screen, black, (middle,
+                                            (int(middle[0] + times * math.sin(math.radians(rotation - plus))),
+                                             int(middle[1] + times * math.cos(math.radians(rotation - plus)))),
+                                            (int(middle[0] + times * math.sin(math.radians(rotation + plus))),
+                                             int(middle[1] + times * math.cos(math.radians(rotation + plus))))))
 
     def update_pos(self, pos=None):
         if pos is None:
@@ -136,9 +139,9 @@ class Button:
         else:
             self.action = action
         if border_color is None:
-            border_color = white
+            border_color = light_grey
         if font_color is None:
-            font_color = white
+            font_color = light_grey
         self.x = x
         self.y = y
         self.padding = padding
@@ -225,8 +228,8 @@ class Button:
 
 class TextBox:
     def __init__(self, x_pos, y_pos, label='', text='', padding=5, border_width=2, selected=False, clear_on_init=False):
-        self.color = white
-        self.bg_color = black
+        self.color = light_grey
+        self.bg_color = bg_color
         self.border_color = self.color
         self.border_width = border_width
         self.x = x_pos
@@ -370,14 +373,14 @@ class Menu:
         self.close_button.draw()
 
         # Left edge
-        pygame.draw.rect(screen, white, (self.x, self.y, self.border_width, self.height))
+        pygame.draw.rect(screen, light_grey, (self.x, self.y, self.border_width, self.height))
         # Top edge
-        pygame.draw.rect(screen, white, (self.x, self.y, self.width, self.border_width))
+        pygame.draw.rect(screen, light_grey, (self.x, self.y, self.width, self.border_width))
         # Bottom edge
-        pygame.draw.rect(screen, white, (self.x, self.y + self.height - self.border_width, self.width,
+        pygame.draw.rect(screen, light_grey, (self.x, self.y + self.height - self.border_width, self.width,
                                          self.border_width))
         # Right edge
-        pygame.draw.rect(screen, white, (self.x + self.width - self.border_width,
+        pygame.draw.rect(screen, light_grey, (self.x + self.width - self.border_width,
                                          self.y, self.border_width, self.height))
 
     def update_pos(self, pos=None):
@@ -395,6 +398,7 @@ class Menu:
         self.close_button.y = self.y + self.padding - 17
 
 
+# Don't allow duplicate edges, right click empty space cancels edge draw
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global left_mouse_held
     global right_mouse_held
@@ -534,7 +538,6 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 def debug_(variables: list):
     global debug
 
-    changed = False
     if debug != variables:
         debug = variables
         print(debug)
@@ -557,7 +560,7 @@ held_key_event = None
 key_hold_counter = 0
 running = True
 while running:
-    screen.fill(black)
+    screen.fill(bg_color)
     tree.draw_tree()
 
     for textbox in text_boxes:
