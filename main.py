@@ -572,13 +572,9 @@ held_key = ''
 held_key_event = None
 key_hold_counter = 0
 running = True
-funky_var = 1.0
 while running:
-    funky_var += 0.00001
-    print(funky_var)
-    # screen.fill(bg_color)
+    screen.fill(bg_color)
     tree.draw_tree()
-    stupid_function()
 
     for textbox in text_boxes:
         textbox.draw()
@@ -653,6 +649,12 @@ while running:
         # Mouse up event
         if event.type == pygame.MOUSEBUTTONUP:
             mouse_handler('up', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
+
+        # Resize
+        if event.type == pygame.VIDEORESIZE:
+            screen_width = event.w
+            screen_height = event.h
+            screen = pygame.display.set_mode((screen_width, screen_height), RESIZABLE)
 
     mouse_handler('', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
