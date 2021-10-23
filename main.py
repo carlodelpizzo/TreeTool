@@ -31,17 +31,17 @@ integers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 
 class Node:
-    def __init__(self, x_pos: int, y_pos: int, label: str, level: int, parents=None, children=None, radius=10,
+    def __init__(self, x_pos: int, y_pos: int, label='', parents=None, children=None, radius=10,
                  font=default_font, font_size=20, held=False):
         self.x = x_pos
         self.y = y_pos
         self.radius = radius
         self.label = label
-        self.level = level
         self.color = blue
         self.font = pygame.font.SysFont(font, font_size)
         self.show_label = True
         self.held = held
+        self.selected = False
         self.held_offset = [0, 0]
         self.draw_edge = False
         if parents is None:
@@ -82,17 +82,16 @@ class Edge:
         self.end_y = end_y
         self.width = width
         self.held = held
+        self.selected = False
         self.source = source
         self.target = target
 
         # for IDE
         if self.x is None:
-            self.source = Node(0, 0, '', 0)
-            self.target = Node(0, 0, '', 0)
+            self.source = Node(0, 0)
+            self.target = Node(0, 0)
 
     def draw(self):
-        global debug
-
         pygame.draw.line(screen, black, (self.x, self.y), (self.end_x, self.end_y), self.width)
         p = (0.4, 0.6)
         middle = (int(p[0] * self.x + p[1] * self.end_x), int(p[0] * self.y + p[1] * self.end_y))
@@ -324,6 +323,7 @@ class TextBox:
         self.cursor_pos = self.text_width + self.x + self.padding + 2
 
 
+# Make Menu permanent fixture, nodes are selectable indicated by ring
 class Menu:
     def __init__(self, x_pos: int, y_pos: int, source_str: str, source: object):
         self.source = source
@@ -336,7 +336,7 @@ class Menu:
 
         # for IDE
         if self.x is None:
-            self.source = Node(0, 0, '', 0)
+            self.source = Node(0, 0)
 
         x_offset = 0
         y_offset = 25
@@ -378,10 +378,10 @@ class Menu:
         pygame.draw.rect(screen, light_grey, (self.x, self.y, self.width, self.border_width))
         # Bottom edge
         pygame.draw.rect(screen, light_grey, (self.x, self.y + self.height - self.border_width, self.width,
-                                         self.border_width))
+                                              self.border_width))
         # Right edge
         pygame.draw.rect(screen, light_grey, (self.x + self.width - self.border_width,
-                                         self.y, self.border_width, self.height))
+                                              self.y, self.border_width, self.height))
 
     def update_pos(self, pos=None):
         if pos is None:
@@ -398,7 +398,7 @@ class Menu:
         self.close_button.y = self.y + self.padding - 17
 
 
-# Don't allow duplicate edges, right click empty space cancels edge draw
+# Don't allow duplicate edges, right click empty space cancels edge draw, allow removal of edges
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global left_mouse_held
     global right_mouse_held
@@ -507,7 +507,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         buttons[i].mouse_input(mouse_pos, mouse_buttons, event_type)
         if buttons[i].run:
             if buttons[i].action == 'node':
-                tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], '', 0, held=True))
+                tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=True))
                 pop_list.insert(0, i)
     for index in pop_list:
         buttons.pop(index)
