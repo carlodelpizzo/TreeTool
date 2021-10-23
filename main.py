@@ -27,7 +27,7 @@ integers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 class Node:
     def __init__(self, x_pos: int, y_pos: int, label: str, level: int, parents=None, children=None, radius=10,
-                 font=default_font, font_size=20):
+                 font=default_font, font_size=20, held=False):
         self.x = x_pos
         self.y = y_pos
         self.radius = radius
@@ -36,8 +36,10 @@ class Node:
         self.color = blue
         self.font = pygame.font.SysFont(font, font_size)
         self.show_label = True
-        self.held = False
+        self.held = held
         self.held_offset = [0, 0]
+        self.draw_edge = False
+        self.connection = []
         if parents is None:
             self.parents = []
         else:
@@ -64,14 +66,20 @@ class Node:
 
 
 class Edge:
-    def __init__(self, x_pos: int, y_pos: int, width: int, height: int):
-        self.x = x_pos
-        self.y = y_pos
+    def __init__(self, start_x: int, start_y: int, end_x: int, end_y: int, width: int, held=False):
+        self.x = start_x
+        self.y = start_y
+        self.end_x = end_x
+        self.end_y = end_y
         self.width = width
-        self.height = height
+        self.held = held
 
     def draw(self):
-        pygame.draw.rect(screen, grey, (self.x, self.y, self.width, self.height))
+        pygame.draw.line(screen, grey, (self.x, self.y), (self.end_x, self.end_y), self.width)
+
+    def update_pos(self, pos: tuple):
+        self.end_x = pos[0]
+        self.end_y = pos[1]
 
 
 class Tree:
@@ -280,13 +288,14 @@ class TextBox:
 
 
 class Menu:
-    def __init__(self, source_str: str, source: object):
+    def __init__(self, x_pos: int, y_pos: int, source_str: str, source: object):
         if source_str == '' or source_str != '':
             self.source = source
         else:
             self.source = Node(0, 0, '', 0)
-        self.x = 0
-        self.y = 0
+        self.source_offset = (7, 0)
+        self.x = x_pos + self.source_offset[0]
+        self.y = y_pos + self.source_offset[1]
         self.padding = 7
         self.border_width = 2
         self.items = []
@@ -317,6 +326,7 @@ class Menu:
 
         self.close_button = Button(self.x + self.width - self.padding - 20, self.y + self.padding - 10,
                                    label='x', border_off=True)
+        self.update_pos()
 
     def draw(self):
         for item in self.items:
@@ -335,7 +345,9 @@ class Menu:
         pygame.draw.rect(screen, white, (self.x + self.width - self.border_width,
                                          self.y, self.border_width, self.height))
 
-    def update_pos(self, pos: tuple):
+    def update_pos(self, pos=None):
+        if pos is None:
+            pos = (self.source.x + self.source_offset[0], self.source.y + self.source_offset[0])
         x_offset = pos[0] - self.x
         y_offset = pos[1] - self.y
         self.x = pos[0]
@@ -355,8 +367,13 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global text_boxes
     global menu
     global tree
-    global draw_edge
     global open_menu
+    global draw_edge
+
+    distance_to_node = 0
+    for node in tree.nodes:
+        if node.draw_edge:
+            distance_to_node = ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5
 
     if event_type == 'down':
         # Left click
@@ -402,31 +419,39 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                     node_click = True
                     open_menu = True
+                    node.draw_edge = True
                     break
             # Right click background
             if not node_click:
                 if len(buttons) == 0:
-                    buttons.append(Button(mouse_pos[0] + 7, mouse_pos[1], 'Node', action='node'))
+                    if not draw_edge:
+                        buttons.append(Button(mouse_pos[0] + 7, mouse_pos[1], 'Node', action='node'))
+                elif buttons[0].check_collide(mouse_pos):
+                    buttons.pop(0)
                 else:
-                    if buttons[0].check_collide(mouse_pos):
-                        buttons.pop(0)
-                    else:
-                        buttons[0].x = mouse_pos[0] + 7
-                        buttons[0].y = mouse_pos[1]
+                    buttons[0].x = mouse_pos[0] + 7
+                    buttons[0].y = mouse_pos[1]
     elif event_type == 'up':
+        # Left unclick
         if not mouse_buttons[0]:
             left_mouse_held = False
             for node in tree.nodes:
                 node.held = False
+        # Right unclick
         if not mouse_buttons[2]:
             right_mouse_held = False
             for node in tree.nodes:
                 if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
-                    if open_menu:
-                        menu = Menu('node', node)
-                        offset_pos = (mouse_pos[0] + 7, mouse_pos[1])
-                        menu.update_pos(offset_pos)
+                    if draw_edge:
+                        tree.edges.pop()
+                        draw_edge = False
+                    # Open Node data menu
+                    elif open_menu:
+                        menu = Menu(mouse_pos[0], mouse_pos[1], 'node', node)
                         open_menu = False
+                        node.draw_edge = False
+                    elif node.draw_edge:
+                        node.draw_edge = False
                     break
 
     # Button Actions
@@ -435,39 +460,46 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         buttons[i].mouse_input(mouse_pos, mouse_buttons, event_type)
         if buttons[i].run:
             if buttons[i].action == 'node':
-                tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], 'temp', 0))
-                tree.nodes[len(tree.nodes) - 1].held = True
+                tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], 'temp', 0, held=True))
                 pop_list.insert(0, i)
     for index in pop_list:
         buttons.pop(index)
     for button in buttons:
         button.draw()
 
-    # Update held objects pos
+    # Nodes / Edges
     for node in tree.nodes:
         if node.held:
             node.update_pos(mouse_pos)
+        elif not draw_edge and node.draw_edge:
+            if abs(distance_to_node) >= node.radius + 5:
+                tree.edges.append(Edge(node.x, node.y, 0, 0, 5))
+                draw_edge = True
+                open_menu = False
+        elif node.draw_edge:
+            if abs(distance_to_node) <= node.radius + 1:
+                draw_edge = False
+                tree.edges.pop()
+    if draw_edge:
+        tree.edges[len(tree.edges) - 1].update_pos(mouse_pos)
 
     if menu is not None:
         menu.draw()
-
-    # Edge drawing
-    if draw_edge:
-        pass
+        menu.update_pos()
 
 
 tree = Tree()
 
 if len(integers) < 0:
-    menu = Menu('', Node(0, 0, '', 0))
+    menu = Menu(0, 0, '', Node(0, 0, '', 0))
 else:
     menu = None
 buttons = []
 text_boxes = []
 left_mouse_held = False
 right_mouse_held = False
-draw_edge = False
 open_menu = False
+draw_edge = False
 held_key = ''
 held_key_event = None
 key_hold_counter = 0
