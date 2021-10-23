@@ -1,7 +1,9 @@
+import math
 import pygame
 from pygame.locals import *
 
 
+debug = []
 pygame.init()
 clock = pygame.time.Clock()
 frame_rate = 60
@@ -39,7 +41,6 @@ class Node:
         self.held = held
         self.held_offset = [0, 0]
         self.draw_edge = False
-        self.connection = []
         if parents is None:
             self.parents = []
         else:
@@ -60,26 +61,58 @@ class Node:
     def draw(self):
         pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
         if self.show_label:
-            label = self.font.render("''" + self.label + "''", True, self.color)
+            label = self.font.render(self.label, True, self.color)
             label_x = int(label.get_rect().width / 2)
             screen.blit(label, (self.x - label_x, self.y - self.radius - 25))
 
 
 class Edge:
-    def __init__(self, start_x: int, start_y: int, end_x: int, end_y: int, width: int, held=False):
+    def __init__(self, start_x: int, start_y: int, end_x: int, end_y: int, width: int, source: object, target=None,
+                 held=False, label='', font=default_font, font_size=20):
+        self.label = label
+        self.show_label = False
+        self.font = font
+        self.font_size = font_size
         self.x = start_x
         self.y = start_y
         self.end_x = end_x
         self.end_y = end_y
         self.width = width
         self.held = held
+        self.source = source
+        self.target = target
+
+        # for IDE
+        if self.x is None:
+            self.source = Node(0, 0, '', 0)
+            self.target = Node(0, 0, '', 0)
 
     def draw(self):
-        pygame.draw.line(screen, grey, (self.x, self.y), (self.end_x, self.end_y), self.width)
+        global debug
 
-    def update_pos(self, pos: tuple):
-        self.end_x = pos[0]
-        self.end_y = pos[1]
+        pygame.draw.line(screen, grey, (self.x, self.y), (self.end_x, self.end_y), self.width)
+        p = (0.4, 0.6)
+        middle = (int(p[0] * self.x + p[1] * self.end_x), int(p[0] * self.y + p[1] * self.end_y))
+        rotation = math.degrees(math.atan2(self.y - self.end_y, self.end_x - self.x)) + 90
+        plus = 155
+        times = 20
+        pygame.draw.polygon(screen, grey, (middle,
+                                           (int(middle[0] + times * math.sin(math.radians(rotation - plus))),
+                                            int(middle[1] + times * math.cos(math.radians(rotation - plus)))),
+                                           (int(middle[0] + times * math.sin(math.radians(rotation + plus))),
+                                            int(middle[1] + times * math.cos(math.radians(rotation + plus))))))
+
+    def update_pos(self, pos=None):
+        if pos is None:
+            if self.source is not None:
+                self.x = self.source.x
+                self.y = self.source.y
+            if self.target is not None:
+                self.end_x = self.target.x
+                self.end_y = self.target.y
+        else:
+            self.end_x = pos[0]
+            self.end_y = pos[1]
 
 
 class Tree:
@@ -89,6 +122,7 @@ class Tree:
 
     def draw_tree(self):
         for edge in self.edges:
+            edge.update_pos()
             edge.draw()
         for node in self.nodes:
             node.draw()
@@ -289,16 +323,17 @@ class TextBox:
 
 class Menu:
     def __init__(self, x_pos: int, y_pos: int, source_str: str, source: object):
-        if source_str == '' or source_str != '':
-            self.source = source
-        else:
-            self.source = Node(0, 0, '', 0)
+        self.source = source
         self.source_offset = (7, 0)
         self.x = x_pos + self.source_offset[0]
         self.y = y_pos + self.source_offset[1]
         self.padding = 7
         self.border_width = 2
         self.items = []
+
+        # for IDE
+        if self.x is None:
+            self.source = Node(0, 0, '', 0)
 
         x_offset = 0
         y_offset = 25
@@ -443,8 +478,16 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             for node in tree.nodes:
                 if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                     if draw_edge:
-                        tree.edges.pop()
                         draw_edge = False
+                        edge = tree.edges[len(tree.edges) - 1]
+                        edge.source.draw_edge = False
+                        edge.held = False
+                        edge.target = node
+                        edge.update_pos()
+                        # Update nodes data
+                        edge.source.children.append(edge.target)
+                        edge.target.parents.append(edge.source)
+
                     # Open Node data menu
                     elif open_menu:
                         menu = Menu(mouse_pos[0], mouse_pos[1], 'node', node)
@@ -460,7 +503,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         buttons[i].mouse_input(mouse_pos, mouse_buttons, event_type)
         if buttons[i].run:
             if buttons[i].action == 'node':
-                tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], 'temp', 0, held=True))
+                tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], '', 0, held=True))
                 pop_list.insert(0, i)
     for index in pop_list:
         buttons.pop(index)
@@ -473,7 +516,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             node.update_pos(mouse_pos)
         elif not draw_edge and node.draw_edge:
             if abs(distance_to_node) >= node.radius + 5:
-                tree.edges.append(Edge(node.x, node.y, 0, 0, 5))
+                tree.edges.append(Edge(node.x, node.y, 0, 0, 3, node))
                 draw_edge = True
                 open_menu = False
         elif node.draw_edge:
@@ -486,6 +529,15 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     if menu is not None:
         menu.draw()
         menu.update_pos()
+
+
+def debug_(variables: list):
+    global debug
+
+    changed = False
+    if debug != variables:
+        debug = variables
+        print(debug)
 
 
 tree = Tree()
