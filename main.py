@@ -96,7 +96,7 @@ class Edge:
         p = (0.4, 0.6)
         middle = (int(p[0] * self.x + p[1] * self.end_x), int(p[0] * self.y + p[1] * self.end_y))
         rotation = math.degrees(math.atan2(self.y - self.end_y, self.end_x - self.x)) + 90
-        plus = 155
+        plus = 165
         times = 20
         pygame.draw.polygon(screen, black, (middle,
                                             (int(middle[0] + times * math.sin(math.radians(rotation - plus))),
@@ -541,19 +541,6 @@ def debug_(variables: list):
     if debug != variables:
         debug = variables
         print(debug)
-
-
-def stupid_function():
-    global screen_width
-    global screen_height
-    global funky_var
-
-    for x in range(1, screen_width):
-        for y in range(1, screen_height):
-            r = int(abs(math.sin(x / screen_width) * 255))
-            g = int(abs(math.sin(y / screen_height) * 255))
-            b = int(abs(math.sin((x * y / screen_width * screen_height) * funky_var) * 255))
-            screen.set_at((x, y), [r, g, b])
 
 
 tree = Tree()
