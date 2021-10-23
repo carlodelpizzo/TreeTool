@@ -543,6 +543,19 @@ def debug_(variables: list):
         print(debug)
 
 
+def stupid_function():
+    global screen_width
+    global screen_height
+    global funky_var
+
+    for x in range(1, screen_width):
+        for y in range(1, screen_height):
+            r = int(abs(math.sin(x / screen_width) * 255))
+            g = int(abs(math.sin(y / screen_height) * 255))
+            b = int(abs(math.sin((x * y / screen_width * screen_height) * funky_var) * 255))
+            screen.set_at((x, y), [r, g, b])
+
+
 tree = Tree()
 
 if len(integers) < 0:
@@ -559,9 +572,13 @@ held_key = ''
 held_key_event = None
 key_hold_counter = 0
 running = True
+funky_var = 1.0
 while running:
-    screen.fill(bg_color)
+    funky_var += 0.00001
+    print(funky_var)
+    # screen.fill(bg_color)
     tree.draw_tree()
+    stupid_function()
 
     for textbox in text_boxes:
         textbox.draw()
