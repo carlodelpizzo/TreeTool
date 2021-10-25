@@ -66,66 +66,98 @@ class Node:
             self.x = pos[0]
             self.y = pos[1]
 
-    def draw(self):
+    def draw(self, offset=(0, 0)):
         if self.selected:
-            pygame.draw.circle(screen, red, (self.x, self.y), self.radius)
-            pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius - 2)
+            pygame.draw.circle(screen, red, (self.x - offset[0], self.y - offset[1]), self.radius)
+            pygame.draw.circle(screen, self.color, (self.x - offset[0], self.y - offset[1]), self.radius - 2)
         else:
-            pygame.draw.circle(screen, black, (self.x, self.y), self.radius)
-            pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius - 2)
+            pygame.draw.circle(screen, black, (self.x - offset[0], self.y - offset[1]), self.radius)
+            pygame.draw.circle(screen, self.color, (self.x - offset[0], self.y - offset[1]), self.radius - 2)
         if self.show_label:
             label = self.font.render(self.label, True, self.color)
             label_x = int(label.get_rect().width / 2)
-            screen.blit(label, (self.x - label_x, self.y - self.radius - 25))
+            screen.blit(label, (self.x - label_x - offset[0], self.y - self.radius - 25 - offset[1]))
 
 
 class Edge:
     def __init__(self, start_x: int, start_y: int, end_x: int, end_y: int, width: int, source: object, target=None,
                  held=False, label='', font=default_font, font_size=20):
         self.label = label
-        self.show_label = False
-        self.font = font
+        self.show_label = True
+        self.color = black
+        self.font = pygame.font.SysFont(font, font_size)
         self.font_size = font_size
         self.x = start_x
         self.y = start_y
         self.end_x = end_x
         self.end_y = end_y
+        self.center = (0, 0)
+        self.arrow_pos = (0.4, 0.6)
         self.width = width
         self.held = held
         self.selected = False
-        self.source = source
-        self.target = target
+        self.parent = source
+        self.child = target
         self.type = 'edge'
 
         # for IDE
         if self.x is None:
-            self.source = Node(0, 0)
-            self.target = Node(0, 0)
+            self.parent = Node(0, 0)
+            self.child = Node(0, 0)
 
-    def draw(self):
-        pygame.draw.line(screen, black, (self.x, self.y), (self.end_x, self.end_y), self.width)
-        p = (0.4, 0.6)
-        middle = (int(p[0] * self.x + p[1] * self.end_x), int(p[0] * self.y + p[1] * self.end_y))
+    def draw(self, offset=(0, 0)):
+        # Draw line
+        pygame.draw.line(screen, self.color, (self.x - offset[0], self.y - offset[1]),
+                         (self.end_x - offset[0], self.end_y - offset[1]), self.width)
+
+        # Draw Arrow
+        p = self.arrow_pos
+        middle = (int(p[0] * self.x + p[1] * self.end_x) - offset[0],
+                  int(p[0] * self.y + p[1] * self.end_y) - offset[1])
         rotation = math.degrees(math.atan2(self.y - self.end_y, self.end_x - self.x)) + 90
         plus = 165
         times = 20
-        pygame.draw.polygon(screen, black, (middle,
-                                            (int(middle[0] + times * math.sin(math.radians(rotation - plus))),
-                                             int(middle[1] + times * math.cos(math.radians(rotation - plus)))),
-                                            (int(middle[0] + times * math.sin(math.radians(rotation + plus))),
-                                             int(middle[1] + times * math.cos(math.radians(rotation + plus))))))
+        if not self.selected:
+            pygame.draw.polygon(screen, self.color, (middle,
+                                                     (int(middle[0] + times * math.sin(math.radians(rotation - plus))),
+                                                      int(middle[1] + times * math.cos(math.radians(rotation - plus)))),
+                                                     (int(middle[0] + times * math.sin(math.radians(rotation + plus))),
+                                                      int(middle[1] + times * math.cos(math.radians(rotation + plus)))))
+                                )
+        else:
+            pygame.draw.polygon(screen, red, (middle,
+                                              (int(middle[0] + times * math.sin(math.radians(rotation - plus))),
+                                               int(middle[1] + times * math.cos(math.radians(rotation - plus)))),
+                                              (int(middle[0] + times * math.sin(math.radians(rotation + plus))),
+                                               int(middle[1] + times * math.cos(math.radians(rotation + plus))))))
+
+        # Draw label
+        if self.show_label:
+            label = self.font.render(self.label, True, white)
+            label_x = int(label.get_rect().width / 2)
+            screen.blit(label, (self.center[0] - label_x - offset[0],
+                                self.center[1] - label.get_rect().height - offset[1]))
 
     def update_pos(self, pos=None):
         if pos is None:
-            if self.source is not None:
-                self.x = self.source.x
-                self.y = self.source.y
-            if self.target is not None:
-                self.end_x = self.target.x
-                self.end_y = self.target.y
+            if self.parent is not None:
+                self.x = self.parent.x
+                self.y = self.parent.y
+            if self.child is not None:
+                self.end_x = self.child.x
+                self.end_y = self.child.y
         else:
             self.end_x = pos[0]
             self.end_y = pos[1]
+
+        p = self.arrow_pos
+        self.center = (int(p[0] * self.x + p[1] * self.end_x), int(p[0] * self.y + p[1] * self.end_y))
+
+    def check_collide(self, pos: tuple):
+        if self.center[0] - 20 <= pos[0] <= self.center[0] + 20:
+            if self.center[1] - 20 <= pos[1] <= self.center[1] + 20:
+                return True
+        return False
 
 
 class Tree:
@@ -133,13 +165,26 @@ class Tree:
         self.nodes = []
         self.edges = []
         self.menu = Menu(0, 0)
+        self.view_offset = (0, 0)
 
     def draw_screen(self):
-        for edge in self.edges:
-            edge.update_pos()
-            edge.draw()
-        for node in self.nodes:
-            node.draw()
+        global view_drag_temp
+        global view_drag
+
+        if not view_drag:
+            for edge in self.edges:
+                # Relocate pos update function
+                edge.update_pos()
+                edge.draw()
+            for node in self.nodes:
+                node.draw()
+        else:
+            for edge in self.edges:
+                # Relocate pos update function
+                edge.update_pos()
+                edge.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
+            for node in self.nodes:
+                node.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
 
         self.menu.draw()
 
@@ -271,9 +316,6 @@ class TextBox:
             self.update_text(character='clear', backspace=True)
 
     def draw(self):
-        # Background
-        pygame.draw.rect(screen, self.bg_color, (self.x, self.y, self.width + self.label_offset, self.height))
-
         # Label
         screen.blit(self.font.render(self.label + ':', True, self.color), (self.x, self.y + self.padding))
 
@@ -357,23 +399,17 @@ class Menu:
         if self.x is None:
             self.source = Node(0, 0)
 
-        x_offset = 0
         y_offset = 45
         width = 0
         if source is None:
-            self.items = [Button(self.x + x_offset + self.padding, self.y + self.padding,
+            self.items = [Button(self.x + self.padding, self.y + self.padding,
                                  'Create New Node', action='node')]
             width = self.items[0].width + self.padding
-            self.items.append(TextBox(self.x + x_offset + self.padding, self.y + y_offset + self.padding,
+            self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
                                       label='Label', text=''))
-            self.items[1].min_width *= 2
-            self.items[1].width *= 2
             y_offset += self.items[0].height + self.padding
-            self.items.append(TextBox(self.x + x_offset + self.padding, self.y + y_offset + self.padding,
+            self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
                                       label='Children', text=''))
-            self.items[1].min_width *= 2
-            self.items[1].width *= 2
-            y_offset += self.items[1].height + self.padding
             for item in self.items:
                 if item.type == 'textbox':
                     if item.width + item.label_offset > width:
@@ -411,18 +447,40 @@ class Menu:
             self.source = source
         else:
             self.source.selected = False
-            self.source = source
+            y_offset = 45
+            if source.type == self.source.type:
+                self.refresh_data()
 
-        for item in self.items:
-            if item.type == 'textbox':
-                if item.label == 'Label':
-                    item.clear_text()
-                    item.update_text(source.label)
-                elif item.label == 'Children':
-                    item.clear_text()
-                    item.update_text(str(len(source.children)))
+            elif source.type == 'node':
+                self.items = [Button(self.x + self.padding, self.y + self.padding,
+                                     'Create New Node', action='node')]
+                self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
+                                          label='Label', text=''))
+                y_offset += self.items[0].height + self.padding
+                self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
+                                          label='Children', text=''))
+
+                for item in self.items:
+                    if item.type == 'textbox':
+                        if item.x + item.width + item.label_offset != self.width - self.padding * 2:
+                            item.width += self.width - self.padding * 2 - item.width - item.label_offset
+                            item.min_width = item.width
+
+            elif source.type == 'edge':
+                self.items = [(TextBox(self.x + self.padding, self.y + y_offset,
+                                       label='Label', text=source.label))]
+
+                for item in self.items:
+                    if item.type == 'textbox':
+                        if item.x + item.width + item.label_offset != self.width - self.padding * 2:
+                            item.width += self.width - self.padding * 2 - item.width - item.label_offset
+                            item.min_width = item.width
 
         source.selected = True
+        self.source = source
+        for item in self.items:
+            if item.type == 'textbox' and item.label == 'Label':
+                item.selected = True
 
     def refresh_data(self):
         if self.source is not None:
@@ -432,21 +490,79 @@ class Menu:
                         if self.source.label != item.text:
                             item.clear_text()
                             item.update_text(self.source.label)
-                    elif item.label == 'Children':
+                    elif self.source.type == 'node' and item.label == 'Children':
                         if str(len(self.source.children)) != item.text:
                             item.clear_text()
                             item.update_text(str(len(self.source.children)))
 
 
-# Don't allow duplicate edges, right click empty space with edge creates new node, allow removal of edges and nodes,
-# Auto name new nodes, Fix menu, textbox scrolling, box select, edges show label
+# Allow removal of edges and nodes, drag background to move view, box-drag select
+# Generalize auto name new nodes, Fix menu generally, textbox scrolling
 
 
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global left_mouse_held
     global right_mouse_held
+    global view_drag
+    global view_drag_var
+    global view_drag_temp
     global tree
     global draw_edge
+
+    def create_new_node():
+        highest_letter = -1
+        node_name = 'A'
+        for t_node in tree.nodes:
+            if len(t_node.label) == 1:
+                for i in range(len(capital_letters)):
+                    if t_node.label[0] == capital_letters[i]:
+                        if i > highest_letter:
+                            highest_letter = i
+        not_in_set = []
+        for i in range(0, highest_letter):
+            letter_not_in_set = True
+            for t_node in tree.nodes:
+                if len(t_node.label) == 1 and t_node.label[0] == capital_letters[i]:
+                    letter_not_in_set = False
+                    break
+            if letter_not_in_set:
+                not_in_set.append(i)
+
+        if len(not_in_set) == 0:
+            if -1 <= highest_letter < 25:
+                node_name = capital_letters[highest_letter + 1]
+            # Repeat for second character
+            else:
+                highest_letter = -1
+                for t_node in tree.nodes:
+                    if len(t_node.label) == 2:
+                        for i in range(len(capital_letters)):
+                            if t_node.label[1] == capital_letters[i]:
+                                if i > highest_letter:
+                                    highest_letter = i
+                not_in_set = []
+                for i in range(0, highest_letter):
+                    letter_not_in_set = True
+                    for t_node in tree.nodes:
+                        if len(t_node.label) == 2 and t_node.label[1] == capital_letters[i]:
+                            letter_not_in_set = False
+                            break
+                    if letter_not_in_set:
+                        not_in_set.append(i)
+
+                if len(not_in_set) == 0:
+                    if -1 <= highest_letter < 25:
+                        node_name += capital_letters[highest_letter + 1]
+                    else:
+                        node_name += 'A#'
+                else:
+                    node_name = capital_letters[not_in_set[0]]
+        else:
+            node_name = capital_letters[not_in_set[0]]
+
+        tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
+                               held=True, label=node_name))
+        tree.menu.update_source(tree.nodes[-1])
 
     distance_to_node = 0
     for node in tree.nodes:
@@ -471,12 +587,29 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     tree.menu.update_source(node)
             # Left click background
             if not node_click:
+                # Select Edge
+                edge_click = False
+                for edge in tree.edges:
+                    if edge.check_collide(mouse_pos):
+                        tree.menu.update_source(edge)
+                        edge_click = True
+
                 # Select menu item
-                for item in tree.menu.items:
-                    item.blink_counter = 0
-                    item.selected = False
-                    if item.check_collide(mouse_pos):
-                        item.selected = True
+                if not edge_click:
+                    menu_click = False
+                    for item in tree.menu.items:
+                        if item.type == 'textbox':
+                            item.blink_counter = 0
+                            item.selected = False
+                            if item.check_collide(mouse_pos):
+                                item.selected = True
+                                menu_click = True
+
+                    # Enable view drag
+                    if not menu_click:
+                        view_drag = True
+                        view_drag_temp = tree.view_offset
+                        view_drag_var = mouse_pos
 
         # Right click
         if mouse_buttons[2]:
@@ -486,35 +619,49 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             for node in tree.nodes:
                 if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                     node_click = True
-                    node.draw_edge = True
+                    if not draw_edge:
+                        node.draw_edge = True
                     break
             # Right click background
             if not node_click:
-                pass
+                if draw_edge:
+                    create_new_node()
     elif event_type == 'up':
         for item in tree.menu.items:
             if item.type == 'button':
                 item.mouse_input(mouse_pos, mouse_buttons, 'up')
         # Left unclick
         if not mouse_buttons[0]:
+            view_drag = False
+            tree.view_offset = (tree.view_offset[0] + view_drag_temp[0], tree.view_offset[1] + view_drag_temp[1])
+            for node in tree.nodes:
+                node.x = node.x - view_drag_temp[0]
+                node.y = node.y - view_drag_temp[1]
+            for edge in tree.edges:
+                edge.update_pos()
+            view_drag_temp = (0, 0)
             left_mouse_held = False
             for node in tree.nodes:
                 node.held = False
+
         # Right unclick
         if not mouse_buttons[2]:
             right_mouse_held = False
             for node in tree.nodes:
                 if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                     if draw_edge:
-                        draw_edge = False
                         edge = tree.edges[-1]
-                        edge.source.draw_edge = False
-                        edge.held = False
-                        edge.target = node
-                        edge.update_pos()
-                        # Update nodes data
-                        edge.source.children.append(edge.target)
-                        edge.target.parents.append(edge.source)
+                        if node not in edge.parent.children:
+                            draw_edge = False
+                            edge.parent.draw_edge = False
+                            edge.held = False
+                            edge.child = node
+                            edge.update_pos()
+                            if edge.label == '':
+                                edge.label = edge.parent.label + '>' + edge.child.label
+                            # Update nodes data
+                            edge.parent.children.append(edge.child)
+                            edge.child.parents.append(edge.parent)
 
                     # Open Node data menu
                     elif node.draw_edge:
@@ -526,58 +673,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         if item.type == 'button':
             if item.run:
                 if item.action == 'node':
-                    highest_letter = -1
-                    node_name = 'A'
-                    for node in tree.nodes:
-                        if len(node.label) == 1:
-                            for i in range(len(capital_letters)):
-                                if node.label[0] == capital_letters[i]:
-                                    if i > highest_letter:
-                                        highest_letter = i
-                    not_in_set = []
-                    for i in range(0, highest_letter):
-                        letter_not_in_set = True
-                        for node in tree.nodes:
-                            if len(node.label) == 1 and node.label[0] == capital_letters[i]:
-                                letter_not_in_set = False
-                                break
-                        if letter_not_in_set:
-                            not_in_set.append(i)
-
-                    if len(not_in_set) == 0:
-                        if -1 <= highest_letter < 25:
-                            node_name = capital_letters[highest_letter + 1]
-                        # Repeat for second character
-                        else:
-                            highest_letter = -1
-                            for node in tree.nodes:
-                                if len(node.label) == 2:
-                                    for i in range(len(capital_letters)):
-                                        if node.label[1] == capital_letters[i]:
-                                            if i > highest_letter:
-                                                highest_letter = i
-                            not_in_set = []
-                            for i in range(0, highest_letter):
-                                letter_not_in_set = True
-                                for node in tree.nodes:
-                                    if len(node.label) == 2 and node.label[1] == capital_letters[i]:
-                                        letter_not_in_set = False
-                                        break
-                                if letter_not_in_set:
-                                    not_in_set.append(i)
-
-                            if len(not_in_set) == 0:
-                                if -1 <= highest_letter < 25:
-                                    node_name += capital_letters[highest_letter + 1]
-                                else:
-                                    node_name += 'A#'
-                            else:
-                                node_name = capital_letters[not_in_set[0]]
-                    else:
-                        node_name = capital_letters[not_in_set[0]]
-
-                    tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=True, label=node_name))
-                    tree.menu.update_source(tree.nodes[-1])
+                    create_new_node()
                 item.run = False
             else:
                 item.mouse_input(mouse_pos, mouse_buttons, '')
@@ -588,7 +684,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             node.update_pos(mouse_pos)
         elif not draw_edge and node.draw_edge:
             if abs(distance_to_node) >= node.radius + 5:
-                tree.edges.append(Edge(node.x, node.y, 0, 0, 3, node))
+                tree.edges.append(Edge(node.x - tree.view_offset[0], node.y - tree.view_offset[1], 0, 0, 2, node))
                 draw_edge = True
         elif node.draw_edge:
             if abs(distance_to_node) <= node.radius + 1:
@@ -596,6 +692,10 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 tree.edges.pop()
     if draw_edge:
         tree.edges[-1].update_pos(mouse_pos)
+
+    # View drag
+    if view_drag:
+        view_drag_temp = (view_drag_var[0] - mouse_pos[0], view_drag_var[1] - mouse_pos[1])
 
 
 def debug_(variables: list):
@@ -610,6 +710,9 @@ tree = Tree()
 
 left_mouse_held = False
 right_mouse_held = False
+view_drag = False
+view_drag_var = (0, 0)
+view_drag_temp = (0, 0)
 draw_edge = False
 held_key = ''
 held_key_event = None
@@ -634,31 +737,36 @@ while running:
                 running = False
                 break
 
+            # Return to original view position
+            if (keys[K_LCTRL] or keys[K_RCTRL]) and keys[K_o]:
+                for node in tree.nodes:
+                    node.x += tree.view_offset[0]
+                    node.y += tree.view_offset[1]
+                tree.view_offset = (0, 0)
+
             # Send input to Menu textbox
             for m_item in tree.menu.items:
                 if m_item.type == 'textbox':
                     if tree.menu.source is not None and m_item.selected:
                         if keys[K_BACKSPACE]:
                             held_key = 'backspace'
-                            key_hold_counter = frame_rate
+                            key_hold_counter = int(frame_rate)
                             m_item.update_text(backspace=True)
                         elif m_item.label == 'Children':
                             if event.unicode in integers:
                                 held_key = event.unicode
                                 held_key_event = event
-                                key_hold_counter = frame_rate
+                                key_hold_counter = int(frame_rate)
                                 m_item.update_text(event.unicode)
                         else:
                             held_key = event.unicode
                             held_key_event = event
-                            key_hold_counter = frame_rate
+                            key_hold_counter = int(frame_rate)
                             m_item.update_text(event.unicode)
 
                         # update node data
                         if m_item.label == 'Label':
                             tree.menu.source.label = m_item.text
-                        elif m_item.label == 'Children':
-                            pass
 
         # Key up events
         if event.type == pygame.KEYUP:
@@ -688,14 +796,18 @@ while running:
     mouse_handler('', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
     if held_key != '' and key_hold_counter == 0:
-        key_hold_counter = frame_rate / 30
+        key_hold_counter = int(frame_rate / 30)
         for m_item in tree.menu.items:
-            if m_item.selected:
-                if held_key == 'backspace':
-                    m_item.update_text(backspace=True)
-                else:
-                    m_item.update_text(held_key)
-                break
+            if m_item.type == 'textbox':
+                if m_item.selected:
+                    if held_key == 'backspace':
+                        m_item.update_text(backspace=True)
+                    else:
+                        m_item.update_text(held_key)
+                # Update source object
+                    if m_item.label == 'Label':
+                        tree.menu.source.label = m_item.text
+                    break
     elif key_hold_counter > 0:
         key_hold_counter -= 1
 
