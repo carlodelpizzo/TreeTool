@@ -7,26 +7,29 @@ debug = []
 pygame.init()
 clock = pygame.time.Clock()
 frame_rate = 60
+
 # Screen
 screen_width = 900
 screen_height = 600
 screen = pygame.display.set_mode((screen_width, screen_height), RESIZABLE)
+
 # Title
 pygame.display.set_caption('Decision Tree Tool')
+
 # Colors
 black = [0, 0, 0]
 white = [255, 255, 255]
-red = [255, 0, 0]
-green = [0, 255, 0]
-blue = [0, 200, 255]
 light_grey = [200, 200, 200]
 dark_grey = [75, 75, 75]
 grey = [128, 128, 128]
+red = [255, 0, 0]
+blue = [0, 200, 255]
 
-bg_color = dark_grey
 # Font
 default_font = 'Georgia'
 
+# Static variables
+bg_color = dark_grey
 integers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
            'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
@@ -59,6 +62,11 @@ class Node:
             self.children = children
 
     def update_pos(self, pos: tuple):
+        for node in tree.nodes:
+            if node != self:
+                if pos[0] - self.radius <= node.x <= pos[0] + self.radius:
+                    if pos[1] - self.radius <= node.y <= pos[1] + self.radius:
+                        return
         if self.held:
             self.x = pos[0] + self.held_offset[0]
             self.y = pos[1] + self.held_offset[1]
@@ -515,18 +523,19 @@ class Menu:
                             item.update_text(str(len(self.source.children)))
 
 
-# Allow removal of edges and nodes, drag background to move view, box-drag select, zoom function
-# Generalize auto name new nodes, Fix menu generally, textbox scrolling
+# Box drag select for group move, Zoom function, Generalize auto name new nodes, Fix menu generally, textbox scrolling
 
 
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global left_mouse_held
     global right_mouse_held
     global view_drag
-    global view_drag_var
+    global orig_mouse_pos
     global view_drag_temp
     global tree
     global draw_edge
+    global double_click
+    global double_click_timer
 
     def create_new_node():
         highest_letter = -1
@@ -627,8 +636,20 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     # Enable view drag
                     if not menu_click:
                         view_drag = True
-                        view_drag_temp = tree.view_offset
-                        view_drag_var = mouse_pos
+
+                        if double_click and double_click_timer > 0:
+                            create_new_node()
+                            double_click_timer = 0
+                            double_click = False
+                            view_drag = False
+
+                        if view_drag:
+                            view_drag_temp = tree.view_offset
+                            orig_mouse_pos = mouse_pos
+
+            if not double_click:
+                double_click = True
+                double_click_timer = int(frame_rate / 3)
 
         # Right click
         if mouse_buttons[2]:
@@ -714,7 +735,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
     # View drag
     if view_drag:
-        view_drag_temp = (view_drag_var[0] - mouse_pos[0], view_drag_var[1] - mouse_pos[1])
+        view_drag_temp = (orig_mouse_pos[0] - mouse_pos[0], orig_mouse_pos[1] - mouse_pos[1])
 
 
 def debug_(variables: list):
@@ -730,9 +751,11 @@ tree = Tree()
 delete_item = False
 delete_timer = 0
 left_mouse_held = False
+double_click = False
+double_click_timer = 0
 right_mouse_held = False
 view_drag = False
-view_drag_var = (0, 0)
+orig_mouse_pos = (0, 0)
 view_drag_temp = (0, 0)
 draw_edge = False
 held_key = ''
@@ -852,6 +875,7 @@ while running:
 
     mouse_handler('', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
+    # Timers
     if held_key != '' and key_hold_counter == 0:
         key_hold_counter = int(frame_rate / 30)
         for m_item in tree.menu.items:
@@ -868,11 +892,17 @@ while running:
     elif key_hold_counter > 0:
         key_hold_counter -= 1
 
-    # Count delete timer
+    # Double press to delete
     if delete_item and delete_timer > 0:
         delete_timer -= 1
         if delete_timer == 0:
             delete_item = False
+
+    # Double click
+    if double_click and double_click_timer > 0:
+        double_click_timer -= 1
+        if double_click_timer == 0:
+            double_click = False
 
     clock.tick(frame_rate)
     pygame.display.flip()
