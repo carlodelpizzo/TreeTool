@@ -80,7 +80,7 @@ class Node:
 
 
 class Edge:
-    def __init__(self, start_x: int, start_y: int, end_x: int, end_y: int, width: int, source: object, target=None,
+    def __init__(self, start_x: int, start_y: int, end_x: int, end_y: int, source: object, width=3, target=None,
                  held=False, label='', font=default_font, font_size=20):
         self.label = label
         self.show_label = True
@@ -109,6 +109,9 @@ class Edge:
         # Draw line
         pygame.draw.line(screen, self.color, (self.x - offset[0], self.y - offset[1]),
                          (self.end_x - offset[0], self.end_y - offset[1]), self.width)
+        if self.selected:
+            pygame.draw.line(screen, red, (self.x - offset[0], self.y - offset[1]),
+                             (self.end_x - offset[0], self.end_y - offset[1]), 1)
 
         # Draw Arrow
         p = self.arrow_pos
@@ -171,6 +174,7 @@ class Tree:
         global view_drag_temp
         global view_drag
 
+        screen.fill(bg_color)
         if not view_drag:
             for edge in self.edges:
                 # Relocate pos update function
@@ -443,44 +447,59 @@ class Menu:
         if self.x is None:
             source = Node(0, 0)
 
-        if self.source is None:
+        if source is not None:
+            if self.source is None:
+                self.source = source
+            else:
+                self.source.selected = False
+                y_offset = 45
+                if source.type == self.source.type:
+                    self.refresh_data()
+
+                elif source.type == 'node':
+                    self.items = [Button(self.x + self.padding, self.y + self.padding,
+                                         'Create New Node', action='node')]
+                    self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
+                                              label='Label', text=''))
+                    y_offset += self.items[0].height + self.padding
+                    self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
+                                              label='Children', text=''))
+
+                    for item in self.items:
+                        if item.type == 'textbox':
+                            if item.x + item.width + item.label_offset != self.width - self.padding * 2:
+                                item.width += self.width - self.padding * 2 - item.width - item.label_offset
+                                item.min_width = item.width
+
+                elif source.type == 'edge':
+                    self.items = [(TextBox(self.x + self.padding, self.y + y_offset,
+                                           label='Label', text=source.label))]
+
+                    for item in self.items:
+                        if item.type == 'textbox':
+                            if item.x + item.width + item.label_offset != self.width - self.padding * 2:
+                                item.width += self.width - self.padding * 2 - item.width - item.label_offset
+                                item.min_width = item.width
+
+            source.selected = True
             self.source = source
+            for item in self.items:
+                if item.type == 'textbox' and item.label == 'Label':
+                    item.selected = True
         else:
-            self.source.selected = False
             y_offset = 45
-            if source.type == self.source.type:
-                self.refresh_data()
-
-            elif source.type == 'node':
-                self.items = [Button(self.x + self.padding, self.y + self.padding,
-                                     'Create New Node', action='node')]
-                self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
-                                          label='Label', text=''))
-                y_offset += self.items[0].height + self.padding
-                self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
-                                          label='Children', text=''))
-
-                for item in self.items:
-                    if item.type == 'textbox':
-                        if item.x + item.width + item.label_offset != self.width - self.padding * 2:
-                            item.width += self.width - self.padding * 2 - item.width - item.label_offset
-                            item.min_width = item.width
-
-            elif source.type == 'edge':
-                self.items = [(TextBox(self.x + self.padding, self.y + y_offset,
-                                       label='Label', text=source.label))]
-
-                for item in self.items:
-                    if item.type == 'textbox':
-                        if item.x + item.width + item.label_offset != self.width - self.padding * 2:
-                            item.width += self.width - self.padding * 2 - item.width - item.label_offset
-                            item.min_width = item.width
-
-        source.selected = True
-        self.source = source
-        for item in self.items:
-            if item.type == 'textbox' and item.label == 'Label':
-                item.selected = True
+            self.items = [Button(self.x + self.padding, self.y + self.padding,
+                                 'Create New Node', action='node')]
+            self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
+                                      label='Label', text=''))
+            y_offset += self.items[0].height + self.padding
+            self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
+                                      label='Children', text=''))
+            for item in self.items:
+                if item.type == 'textbox':
+                    if item.x + item.width + item.label_offset != self.width - self.padding * 2:
+                        item.width += self.width - item.width - item.label_offset - self.padding * 2
+                        item.min_width = item.width
 
     def refresh_data(self):
         if self.source is not None:
@@ -496,7 +515,7 @@ class Menu:
                             item.update_text(str(len(self.source.children)))
 
 
-# Allow removal of edges and nodes, drag background to move view, box-drag select
+# Allow removal of edges and nodes, drag background to move view, box-drag select, zoom function
 # Generalize auto name new nodes, Fix menu generally, textbox scrolling
 
 
@@ -684,7 +703,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             node.update_pos(mouse_pos)
         elif not draw_edge and node.draw_edge:
             if abs(distance_to_node) >= node.radius + 5:
-                tree.edges.append(Edge(node.x - tree.view_offset[0], node.y - tree.view_offset[1], 0, 0, 2, node))
+                tree.edges.append(Edge(node.x - tree.view_offset[0], node.y - tree.view_offset[1], 0, 0, node))
                 draw_edge = True
         elif node.draw_edge:
             if abs(distance_to_node) <= node.radius + 1:
@@ -708,6 +727,8 @@ def debug_(variables: list):
 
 tree = Tree()
 
+delete_item = False
+delete_timer = 0
 left_mouse_held = False
 right_mouse_held = False
 view_drag = False
@@ -719,7 +740,6 @@ held_key_event = None
 key_hold_counter = 0
 running = True
 while running:
-    screen.fill(bg_color)
     tree.draw_screen()
 
     # Event loop
@@ -768,6 +788,43 @@ while running:
                         if m_item.label == 'Label':
                             tree.menu.source.label = m_item.text
 
+            # Delete selected item
+            if keys[K_DELETE]:
+                if not delete_item:
+                    delete_item = True
+                    delete_timer = int(frame_rate / 2)
+                elif delete_timer > 0:
+                    if tree.menu.source is not None:
+                        if tree.menu.source.type == 'node':
+                            if len(tree.menu.source.parents) != 0:
+                                for parent in tree.menu.source.parents:
+                                    parent.children.pop(parent.children.index(tree.menu.source))
+                            if len(tree.menu.source.children) != 0:
+                                for child in tree.menu.source.children:
+                                    child.parents.pop(child.parents.index(tree.menu.source))
+                            if len(tree.menu.source.parents) != 0 or len(tree.menu.source.children) != 0:
+                                pop_list = []
+                                for edge in tree.edges:
+                                    if edge.parent == tree.menu.source or edge.child == tree.menu.source:
+                                        pop_list.append(tree.edges.index(edge))
+                                pop_list.sort(reverse=True)
+                                for i in range(len(pop_list)):
+                                    tree.edges.pop(pop_list[i])
+                            tree.nodes.pop(tree.nodes.index(tree.menu.source))
+                        elif tree.menu.source.type == 'edge':
+                            # For IDE
+                            if delete_timer < 0:
+                                edge = Edge(0, 0, 0, 0, None)
+                            else:
+                                edge = tree.menu.source
+
+                            edge.parent.children.pop(edge.parent.children.index(edge.child))
+                            edge.child.parents.pop(edge.child.parents.index(edge.parent))
+                            tree.edges.pop(tree.edges.index(edge))
+
+                    tree.menu.update_source(None)
+                    delete_item = False
+
         # Key up events
         if event.type == pygame.KEYUP:
             if held_key != '':
@@ -810,6 +867,12 @@ while running:
                     break
     elif key_hold_counter > 0:
         key_hold_counter -= 1
+
+    # Count delete timer
+    if delete_item and delete_timer > 0:
+        delete_timer -= 1
+        if delete_timer == 0:
+            delete_item = False
 
     clock.tick(frame_rate)
     pygame.display.flip()
