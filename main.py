@@ -1,4 +1,5 @@
 import math
+import random
 import pygame
 from pygame.locals import *
 
@@ -35,11 +36,22 @@ letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
            'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 capital_letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
                    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+alpha_numeric = []
+for item in integers:
+    alpha_numeric.append(item)
+for item in letters:
+    alpha_numeric.append(item)
+for item in capital_letters:
+    alpha_numeric.append(item)
 
 
 class Node:
     def __init__(self, x_pos: int, y_pos: int, label='', parents=None, children=None, radius=10,
                  font=default_font, font_size=20, held=False):
+        ran = ''
+        for _ in range(0, 30):
+            ran += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
+        self.id = ran
         self.x = x_pos
         self.y = y_pos
         self.radius = radius
@@ -90,6 +102,10 @@ class Node:
 class Edge:
     def __init__(self, start_x: int, start_y: int, end_x: int, end_y: int, source: object, width=3, target=None,
                  held=False, label='', font=default_font, font_size=20):
+        ran = ''
+        for _ in range(0, 30):
+            ran += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
+        self.id = ran
         self.label = label
         self.show_label = True
         self.color = black
@@ -199,6 +215,24 @@ class Tree:
                 node.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
 
         self.menu.draw()
+
+    def save_tree(self):
+        save_file = open('tree_' + ran_name + '.txt', 'w', errors='ignore')
+        text = '**NODES**\n'
+        for item in self.nodes:
+            text += str(item.id) + '\n' + str(item.label) + '\n' + str(item.x) + '\n' + str(item.y) + '\n' +\
+                    'parents\n'
+            for parent in item.parents:
+                text += parent.id + '\n'
+            text += 'parents' + '\n' + 'children' + '\n'
+            for child in item.children:
+                text += child.id + '\n'
+            text += 'children\n'
+        text += '**EDGES**\n'
+        for item in self.edges:
+            text += item.parent.id + '\n' + item.child.id + '\n' + item.label + '\n'
+        save_file.writelines(text)
+        save_file.close()
 
 
 class Button:
@@ -523,7 +557,9 @@ class Menu:
                             item.update_text(str(len(self.source.children)))
 
 
-# Box drag select for group move, Zoom function, Generalize auto name new nodes, Fix menu generally, textbox scrolling
+# Box drag select for group move, Zoom function (deceptively hard)
+# Fix menu generally, textbox scrolling
+# Save to file, reorganize everything
 
 
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
@@ -538,58 +574,37 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global double_click_timer
 
     def create_new_node():
-        highest_letter = -1
-        node_name = 'A'
-        for t_node in tree.nodes:
-            if len(t_node.label) == 1:
-                for i in range(len(capital_letters)):
-                    if t_node.label[0] == capital_letters[i]:
-                        if i > highest_letter:
-                            highest_letter = i
-        not_in_set = []
-        for i in range(0, highest_letter):
-            letter_not_in_set = True
-            for t_node in tree.nodes:
-                if len(t_node.label) == 1 and t_node.label[0] == capital_letters[i]:
-                    letter_not_in_set = False
-                    break
-            if letter_not_in_set:
-                not_in_set.append(i)
+        global auto_name
 
-        if len(not_in_set) == 0:
-            if -1 <= highest_letter < 25:
-                node_name = capital_letters[highest_letter + 1]
-            # Repeat for second character
-            else:
-                highest_letter = -1
-                for t_node in tree.nodes:
-                    if len(t_node.label) == 2:
-                        for i in range(len(capital_letters)):
-                            if t_node.label[1] == capital_letters[i]:
-                                if i > highest_letter:
-                                    highest_letter = i
-                not_in_set = []
-                for i in range(0, highest_letter):
-                    letter_not_in_set = True
-                    for t_node in tree.nodes:
-                        if len(t_node.label) == 2 and t_node.label[1] == capital_letters[i]:
-                            letter_not_in_set = False
-                            break
-                    if letter_not_in_set:
-                        not_in_set.append(i)
-
-                if len(not_in_set) == 0:
-                    if -1 <= highest_letter < 25:
-                        node_name += capital_letters[highest_letter + 1]
-                    else:
-                        node_name += 'A#'
-                else:
-                    node_name = capital_letters[not_in_set[0]]
+        if auto_name == '':
+            auto_name = 'A'
+        elif len(auto_name) == 1 and auto_name != 'Z':
+            auto_name = capital_letters[capital_letters.index(auto_name) + 1]
+        elif len(auto_name) == 1 and auto_name == 'Z':
+            auto_name = 'AA'
         else:
-            node_name = capital_letters[not_in_set[0]]
+            index = 0
+            for i in reversed(range(len(auto_name))):
+                index += 1
+                if auto_name[i] == 'Z':
+                    if i == 0:
+                        length = len(auto_name)
+                        auto_name = ''
+                        for _ in range(0, length + 1):
+                            auto_name += 'A'
+                else:
+                    auto_name = auto_name[:i] + capital_letters[capital_letters.index(auto_name[i]) + 1]
+                    for _ in range(0, index - 1):
+                        auto_name += 'A'
+                    break
+
+        for node in tree.nodes:
+            if auto_name == node.label:
+                create_new_node()
+                return
 
         tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
-                               held=True, label=node_name))
+                               held=True, label=auto_name))
         tree.menu.update_source(tree.nodes[-1])
 
     distance_to_node = 0
@@ -738,6 +753,28 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         view_drag_temp = (orig_mouse_pos[0] - mouse_pos[0], orig_mouse_pos[1] - mouse_pos[1])
 
 
+def zoom_tree(delta_zoom: int):
+    global zoom
+    global zoom_factor
+
+    zoom += delta_zoom
+    if zoom > 0:
+        zoom_factor = 1 + delta_zoom * 0.1
+    elif zoom < 0:
+        zoom_factor = 1 + delta_zoom * 0.05
+    else:
+        zoom_factor = 1
+
+    # for node in tree.nodes:
+    #     theta = math.atan2((node.y - (screen_height / 2)), (node.x - (screen_width / 2)))
+    #     if theta < 0:
+    #         theta = math.radians(360) + theta
+    #     d = math.sqrt((node.y - (screen_height / 2))**2 + (node.x - (screen_width / 2))**2) + math.sqrt(2)
+    #     x = (math.cos(theta) * d) + (screen_width / 2)
+    #     y = (math.sin(theta) * d) + (screen_height / 2)
+    #     node.update_pos((x, y))
+
+
 def debug_(variables: list):
     global debug
 
@@ -747,16 +784,23 @@ def debug_(variables: list):
 
 
 tree = Tree()
+ran_name = ''
+for _ in range(0, 10):
+    ran_name += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
 
+# Maybe label these
 delete_item = False
 delete_timer = 0
 left_mouse_held = False
 double_click = False
+auto_name = ''
 double_click_timer = 0
 right_mouse_held = False
 view_drag = False
 orig_mouse_pos = (0, 0)
 view_drag_temp = (0, 0)
+zoom = 0
+zoom_factor = 1
 draw_edge = False
 held_key = ''
 held_key_event = None
@@ -764,17 +808,16 @@ key_hold_counter = 0
 running = True
 while running:
     tree.draw_screen()
-
     # Event loop
     for event in pygame.event.get():
+        keys = pygame.key.get_pressed()
         # Close window
-        if event.type == pygame.QUIT:
+        if event.type == QUIT:
             running = False
             break
 
         # Key down events
-        keys = pygame.key.get_pressed()
-        if event.type == pygame.KEYDOWN:
+        elif event.type == KEYDOWN:
             # Close window shortcut
             if (keys[K_LCTRL] or keys[K_RCTRL]) and keys[K_w]:
                 running = False
@@ -786,6 +829,10 @@ while running:
                     node.x += tree.view_offset[0]
                     node.y += tree.view_offset[1]
                 tree.view_offset = (0, 0)
+
+            # Save tree
+            if (keys[K_LCTRL] or keys[K_RCTRL]) and keys[K_s]:
+                tree.save_tree()
 
             # Send input to Menu textbox
             for m_item in tree.menu.items:
@@ -849,7 +896,7 @@ while running:
                     delete_item = False
 
         # Key up events
-        if event.type == pygame.KEYUP:
+        elif event.type == KEYUP:
             if held_key != '':
                 if held_key == 'backspace' and not keys[K_BACKSPACE]:
                     held_key = ''
@@ -859,15 +906,21 @@ while running:
                         held_key_event = None
 
         # Mouse down event
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        elif event.type == MOUSEBUTTONDOWN:
             mouse_handler('down', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
         # Mouse up event
-        if event.type == pygame.MOUSEBUTTONUP:
+        elif event.type == MOUSEBUTTONUP:
             mouse_handler('up', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
+        elif event.type == MOUSEWHEEL:
+            if not event.flipped:
+                zoom_tree(event.y)
+            else:
+                zoom_tree(- event.y)
+
         # Resize
-        if event.type == pygame.VIDEORESIZE:
+        elif event.type == VIDEORESIZE:
             screen_width = event.w
             screen_height = event.h
             screen = pygame.display.set_mode((screen_width, screen_height), RESIZABLE)
