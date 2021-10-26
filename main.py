@@ -47,11 +47,13 @@ for item in capital_letters:
 
 class Node:
     def __init__(self, x_pos: int, y_pos: int, label='', parents=None, children=None, radius=10,
-                 font=default_font, font_size=20, held=False):
-        ran = ''
-        for _ in range(0, 30):
-            ran += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
-        self.id = ran
+                 font=default_font, font_size=20, held=False, node_id=None):
+        if node_id is None:
+            ran = ''
+            for _ in range(0, 30):
+                ran += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
+            node_id = ran
+        self.id = node_id
         self.x = x_pos
         self.y = y_pos
         self.radius = radius
@@ -557,9 +559,9 @@ class Menu:
                             item.update_text(str(len(self.source.children)))
 
 
-# Box drag select for group move, Zoom function (deceptively hard)
-# Fix menu generally, textbox scrolling
-# Save to file, reorganize everything
+# Box drag select for group move, Zoom function (deceptively hard), interpret delete key in textbox
+# Fix menu generally, textbox scrolling. Tab to change node, ability to move textbox cursor
+# Save to file, reorganize everything, allow view drag when clicking on edge, add copy paste
 
 
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
@@ -775,6 +777,72 @@ def zoom_tree(delta_zoom: int):
     #     node.update_pos((x, y))
 
 
+def load_tree():
+    save_file = open('Dales_game.txt', 'r', errors='ignore')
+    load_nodes = False
+    load_edges = False
+    nodes = []
+    node_temp = []
+    edges = []
+    edge_temp = []
+    # Node format: 0 = id, 1 = label, 2 = x, 3 = y,
+    # 4 = 'parents', ...,  n = 'parents, n+1 = 'children', ..., k = 'children'
+    # Edge format: 0 = parent.id, 1 = child.id, 2 = label
+    for line in save_file:
+        if '**NODES**' in line:
+            load_nodes = True
+            load_edges = False
+            continue
+        elif '**EDGES**' in line:
+            load_nodes = False
+            load_edges = True
+            continue
+        if load_nodes:
+            if 'children' in line:
+                if 'children' in node_temp:
+                    node_temp.append(line.replace('\n', ''))
+                    nodes.append(node_temp)
+                    node_temp = []
+                else:
+                    node_temp.append(line.replace('\n', ''))
+            else:
+                node_temp.append(line.replace('\n', ''))
+        elif load_edges:
+            edge_temp.append(line.replace('\n', ''))
+            if len(edge_temp) == 3:
+                edges.append(edge_temp)
+                edge_temp = []
+
+    parents = False
+    children = False
+    node_dict = {}
+    for node in nodes:
+        tree.nodes.append(Node(int(node[2]), int(node[3]), label=node[1], node_id=node[0]))
+        node_dict[node[0]] = tree.nodes[-1]
+    for node in nodes:
+        for i in range(4, len(node)):
+            if not parents and node[i] == 'parents':
+                parents = True
+                children = False
+                continue
+            elif parents and node[i] == 'parents':
+                parents = False
+            elif parents and node[i] != 'parents':
+                node_dict[node[0]].parents.append(node_dict[node[i]])
+            elif not children and node[i] == 'children':
+                parents = False
+                children = True
+                continue
+            elif children and node[i] != 'children':
+                node_dict[node[0]].children.append(node_dict[node[i]])
+
+    for edge in edges:
+        source = node_dict[edge[0]]
+        target = node_dict[edge[1]]
+        tree.edges.append(Edge(source.x, source.y, target.x, target.y, source, target=target, label=edge[2]))
+    save_file.close()
+
+
 def debug_(variables: list):
     global debug
 
@@ -806,6 +874,7 @@ held_key = ''
 held_key_event = None
 key_hold_counter = 0
 running = True
+load_tree()
 while running:
     tree.draw_screen()
     # Event loop
