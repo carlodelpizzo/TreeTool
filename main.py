@@ -195,12 +195,18 @@ class Tree:
         self.edges = []
         self.menu = Menu(0, 0)
         self.view_offset = (0, 0)
+        self.selection = None
+
+        # For IDE
+        if self.selection is not None:
+            self.selection = SelectionBox(0, 0)
 
     def draw_screen(self):
         global view_drag_temp
         global view_drag
 
         screen.fill(bg_color)
+
         if not view_drag:
             for edge in self.edges:
                 # Relocate pos update function
@@ -208,6 +214,8 @@ class Tree:
                 edge.draw()
             for node in self.nodes:
                 node.draw()
+            if self.selection is not None:
+                self.selection.draw()
         else:
             for edge in self.edges:
                 # Relocate pos update function
@@ -215,6 +223,8 @@ class Tree:
                 edge.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
             for node in self.nodes:
                 node.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
+            if self.selection is not None:
+                self.selection.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
 
         self.menu.draw()
 
@@ -559,6 +569,43 @@ class Menu:
                             item.update_text(str(len(self.source.children)))
 
 
+class SelectionBox:
+    def __init__(self, x_pos: int, y_pos: int, width=2, color=None):
+        self.selected = False
+        self.x = x_pos
+        self.y = y_pos
+        self.end_x = self.x
+        self.end_y = self.y
+        if color is None:
+            color = white
+        self.color = color
+        self.width = width
+        self.x_range = (self.x, self.x)
+        self.y_range = (self.y, self.y)
+
+    def draw(self, offset=(0, 0)):
+        pygame.draw.rect(screen, self.color, (self.x - offset[0], self.y - offset[1],
+                                              self.end_x - self.x, self.end_y - self.y),
+                         width=self.width)
+
+    def update_pos(self, pos: tuple):
+        self.end_x = pos[0]
+        self.end_y = pos[1]
+
+        if self.x <= self.end_x:
+            self.x_range = (self.x, self.end_x)
+        elif self.x >= self.end_x:
+            self.x_range = (self.end_x, self.x)
+
+        if self.y <= self.end_y:
+            self.y_range = (self.y, self.end_y)
+        elif self.y >= self.end_y:
+            self.y_range = (self.end_y, self.y)
+
+    def make_selection(self, selected=True):
+        self.selected = selected
+
+
 # Box drag select for group move, Zoom function (deceptively hard), interpret delete key in textbox
 # Fix menu generally, textbox scrolling. Tab to change node, ability to move textbox cursor
 # Save to file, reorganize everything, allow view drag when clicking on edge, add copy paste
@@ -574,6 +621,8 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global draw_edge
     global double_click
     global double_click_timer
+    global box_select
+    global allow_box_select
 
     def create_new_node():
         global auto_name
@@ -632,37 +681,45 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     tree.menu.update_source(node)
             # Left click background
             if not node_click:
-                # Select Edge
-                edge_click = False
-                for edge in tree.edges:
-                    if edge.check_collide(mouse_pos):
-                        tree.menu.update_source(edge)
-                        edge_click = True
+                if not allow_box_select:
+                    view_drag = True
 
-                # Select menu item
-                if not edge_click:
-                    menu_click = False
-                    for item in tree.menu.items:
-                        if item.type == 'textbox':
-                            item.blink_counter = 0
-                            item.selected = False
-                            if item.check_collide(mouse_pos):
-                                item.selected = True
-                                menu_click = True
-
-                    # Enable view drag
-                    if not menu_click:
-                        view_drag = True
-
-                        if double_click and double_click_timer > 0:
+                    if double_click and double_click_timer > 0:
+                        if not box_select:
                             create_new_node()
                             double_click_timer = 0
                             double_click = False
                             view_drag = False
+                        else:
+                            box_select = False
 
-                        if view_drag:
-                            view_drag_temp = tree.view_offset
-                            orig_mouse_pos = mouse_pos
+                    if view_drag:
+                        view_drag_temp = tree.view_offset
+                        orig_mouse_pos = mouse_pos
+
+                    # Select Edge
+                    edge_click = False
+                    for edge in tree.edges:
+                        if edge.check_collide(mouse_pos):
+                            tree.menu.update_source(edge)
+                            edge_click = True
+
+                    # Select menu item
+                    if not edge_click:
+                        for item in tree.menu.items:
+                            if item.type == 'textbox':
+                                item.blink_counter = 0
+                                item.selected = False
+                                if item.check_collide(mouse_pos):
+                                    item.selected = True
+                elif allow_box_select and not box_select:
+                    box_select = True
+                    if tree.selection is None:
+                        tree.selection = SelectionBox(mouse_pos[0], mouse_pos[1])
+                elif allow_box_select and box_select:
+                    tree.selection.x = mouse_pos[0]
+                    tree.selection.y = mouse_pos[1]
+                    tree.selection.make_selection(selected=False)
 
             if not double_click:
                 double_click = True
@@ -689,17 +746,37 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 item.mouse_input(mouse_pos, mouse_buttons, 'up')
         # Left unclick
         if not mouse_buttons[0]:
+            left_mouse_held = False
             view_drag = False
             tree.view_offset = (tree.view_offset[0] + view_drag_temp[0], tree.view_offset[1] + view_drag_temp[1])
             for node in tree.nodes:
-                node.x = node.x - view_drag_temp[0]
-                node.y = node.y - view_drag_temp[1]
+                node.x -= view_drag_temp[0]
+                node.y -= view_drag_temp[1]
             for edge in tree.edges:
                 edge.update_pos()
+            if tree.selection is not None and tree.selection.selected:
+                tree.selection.x -= view_drag_temp[0]
+                tree.selection.end_x -= view_drag_temp[0]
+                tree.selection.y -= view_drag_temp[1]
+                tree.selection.end_y -= view_drag_temp[1]
             view_drag_temp = (0, 0)
-            left_mouse_held = False
-            for node in tree.nodes:
-                node.held = False
+
+            if tree.selection is None:
+                for node in tree.nodes:
+                    node.held = False
+            elif not tree.selection.selected:
+                for node in tree.nodes:
+                    if tree.selection.x_range[0] <= node.x <= tree.selection.x_range[1]:
+                        if tree.selection.y_range[0] <= node.y <= tree.selection.y_range[1]:
+                            node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
+                            node.selected = True
+                            tree.selection.make_selection()
+                        else:
+                            node.selected = False
+                            node.held = False
+                    else:
+                        node.selected = False
+                        node.held = False
 
         # Right unclick
         if not mouse_buttons[2]:
@@ -753,6 +830,11 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     # View drag
     if view_drag:
         view_drag_temp = (orig_mouse_pos[0] - mouse_pos[0], orig_mouse_pos[1] - mouse_pos[1])
+
+    # Box select
+    if tree.selection is not None:
+        if not tree.selection.selected:
+            tree.selection.update_pos(mouse_pos)
 
 
 def zoom_tree(delta_zoom: int):
@@ -865,6 +947,8 @@ auto_name = ''
 double_click_timer = 0
 right_mouse_held = False
 view_drag = False
+allow_box_select = False
+box_select = False
 orig_mouse_pos = (0, 0)
 view_drag_temp = (0, 0)
 zoom = 0
@@ -887,21 +971,25 @@ while running:
 
         # Key down events
         elif event.type == KEYDOWN:
-            # Close window shortcut
-            if (keys[K_LCTRL] or keys[K_RCTRL]) and keys[K_w]:
-                running = False
-                break
+            # Ctrl functions
+            if keys[K_LCTRL] or keys[K_RCTRL]:
+                allow_box_select = True
 
-            # Return to original view position
-            if (keys[K_LCTRL] or keys[K_RCTRL]) and keys[K_o]:
-                for node in tree.nodes:
-                    node.x += tree.view_offset[0]
-                    node.y += tree.view_offset[1]
-                tree.view_offset = (0, 0)
+                # Save tree
+                if keys[K_s]:
+                    tree.save_tree()
 
-            # Save tree
-            if (keys[K_LCTRL] or keys[K_RCTRL]) and keys[K_s]:
-                tree.save_tree()
+                # Close window shortcut
+                elif keys[K_w]:
+                    running = False
+                    break
+
+                # Return to original view position
+                elif keys[K_o]:
+                    for node in tree.nodes:
+                        node.x += tree.view_offset[0]
+                        node.y += tree.view_offset[1]
+                    tree.view_offset = (0, 0)
 
             # Send input to Menu textbox
             for m_item in tree.menu.items:
@@ -966,6 +1054,8 @@ while running:
 
         # Key up events
         elif event.type == KEYUP:
+            if not keys[K_LCTRL] and not keys[K_RCTRL]:
+                allow_box_select = False
             if held_key != '':
                 if held_key == 'backspace' and not keys[K_BACKSPACE]:
                     held_key = ''
