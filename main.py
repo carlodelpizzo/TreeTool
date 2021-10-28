@@ -714,7 +714,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             left_mouse_held = True
 
             # Left click in selection box
-            if tree.selection_box is not None and tree.selection_box.selected and \
+            if not allow_box_select and tree.selection_box is not None and tree.selection_box.selected and \
                     tree.selection_box.x_range[0] <= mouse_pos[0] <= tree.selection_box.x_range[1] and \
                     tree.selection_box.y_range[0] <= mouse_pos[1] <= tree.selection_box.y_range[1]:
                 tree.selection_box.held = True
@@ -734,34 +734,38 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     if not allow_box_select:
                         view_drag = True
 
+                        rename_this_later = True
+                        # Double click to create new node
                         if double_click and double_click_timer > 0:
                             if not box_select:
                                 create_new_node()
                                 double_click_timer = 0
                                 double_click = False
                                 view_drag = False
+                                rename_this_later = False
                             else:
                                 box_select = False
 
-                        if view_drag:
-                            view_drag_temp = tree.view_offset
-                            orig_mouse_pos = mouse_pos
+                        if rename_this_later:
+                            if view_drag:
+                                view_drag_temp = tree.view_offset
+                                orig_mouse_pos = mouse_pos
 
-                        # Select Edge
-                        edge_click = False
-                        for edge in tree.edges:
-                            if edge.check_collide(mouse_pos):
-                                tree.menu.update_source(edge)
-                                edge_click = True
+                            # Select Edge
+                            edge_click = False
+                            for edge in tree.edges:
+                                if edge.check_collide(mouse_pos):
+                                    tree.menu.update_source(edge)
+                                    edge_click = True
 
-                        # Select menu item
-                        if not edge_click:
-                            for item in tree.menu.items:
-                                if item.type == 'textbox':
-                                    item.blink_counter = 0
-                                    item.selected = False
-                                    if item.check_collide(mouse_pos):
-                                        item.selected = True
+                            # Select menu item
+                            if not edge_click:
+                                for item in tree.menu.items:
+                                    if item.type == 'textbox':
+                                        item.blink_counter = 0
+                                        item.selected = False
+                                        if item.check_collide(mouse_pos):
+                                            item.selected = True
                     elif allow_box_select and not box_select:
                         box_select = True
                         if tree.selection_box is None:
@@ -809,6 +813,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     box_select = False
 
             tree.view_offset = (tree.view_offset[0] + view_drag_temp[0], tree.view_offset[1] + view_drag_temp[1])
+            # Update node pos from view drag
             for node in tree.nodes:
                 node.x -= view_drag_temp[0]
                 node.y -= view_drag_temp[1]
@@ -920,15 +925,6 @@ def zoom_tree(delta_zoom: int):
         zoom_factor = 1 + delta_zoom * 0.05
     else:
         zoom_factor = 1
-
-    # for node in tree.nodes:
-    #     theta = math.atan2((node.y - (screen_height / 2)), (node.x - (screen_width / 2)))
-    #     if theta < 0:
-    #         theta = math.radians(360) + theta
-    #     d = math.sqrt((node.y - (screen_height / 2))**2 + (node.x - (screen_width / 2))**2) + math.sqrt(2)
-    #     x = (math.cos(theta) * d) + (screen_width / 2)
-    #     y = (math.sin(theta) * d) + (screen_height / 2)
-    #     node.update_pos((x, y))
 
 
 def load_tree():
@@ -1139,11 +1135,13 @@ while running:
 
         # Mouse down event
         elif event.type == MOUSEBUTTONDOWN:
-            mouse_handler('down', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
+            if pygame.mouse.get_pressed()[0] or pygame.mouse.get_pressed()[2]:
+                mouse_handler('down', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
         # Mouse up event
         elif event.type == MOUSEBUTTONUP:
-            mouse_handler('up', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
+            if left_mouse_held or right_mouse_held:
+                mouse_handler('up', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
         elif event.type == MOUSEWHEEL:
             if not event.flipped:
