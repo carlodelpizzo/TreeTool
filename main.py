@@ -2,6 +2,7 @@ import math
 import random
 import pygame
 from pygame.locals import *
+import os
 
 
 debug = []
@@ -195,11 +196,11 @@ class Tree:
         self.edges = []
         self.menu = Menu(0, 0)
         self.view_offset = (0, 0)
-        self.selection = None
+        self.selection_box = None
 
         # For IDE
-        if self.selection is not None:
-            self.selection = SelectionBox(0, 0)
+        if self.selection_box is not None:
+            self.selection_box = SelectionBox(0, 0)
 
     def draw_screen(self):
         global view_drag_temp
@@ -214,8 +215,8 @@ class Tree:
                 edge.draw()
             for node in self.nodes:
                 node.draw()
-            if self.selection is not None:
-                self.selection.draw()
+            if self.selection_box is not None:
+                self.selection_box.draw()
         else:
             for edge in self.edges:
                 # Relocate pos update function
@@ -223,8 +224,8 @@ class Tree:
                 edge.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
             for node in self.nodes:
                 node.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
-            if self.selection is not None:
-                self.selection.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
+            if self.selection_box is not None:
+                self.selection_box.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
 
         self.menu.draw()
 
@@ -572,6 +573,9 @@ class Menu:
 class SelectionBox:
     def __init__(self, x_pos: int, y_pos: int, width=2, color=None):
         self.selected = False
+        self.selection = []
+        self.held = False
+        self.held_offset = [0, 0]
         self.x = x_pos
         self.y = y_pos
         self.end_x = self.x
@@ -588,10 +592,52 @@ class SelectionBox:
                                               self.end_x - self.x, self.end_y - self.y),
                          width=self.width)
 
-    def update_pos(self, pos: tuple):
+    def update_end_pos(self, pos: tuple):
         self.end_x = pos[0]
         self.end_y = pos[1]
 
+        self.update_range()
+
+    def update_pos(self, pos: tuple):
+        offset = ((pos[0] + self.held_offset[0]) - self.x, (pos[1] + self.held_offset[1]) - self.y)
+
+        if len(self.selection) > 0:
+            for node in self.selection:
+                node.x += offset[0]
+                node.y += offset[1]
+
+        self.x += offset[0]
+        self.end_x += offset[0]
+        self.y += offset[1]
+        self.end_y += offset[1]
+
+        self.update_range()
+
+    def make_selection(self, selected=True, selected_object=None):
+        self.selected = selected
+        if selected_object is not None:
+            self.selection.append(selected_object)
+
+    def resize_box(self):
+        x_range = [screen_width, 0]
+        y_range = [screen_height, 0]
+        if len(self.selection) > 0:
+            for node in self.selection:
+                if node.x - node.radius < x_range[0]:
+                    x_range[0] = node.x - node.radius
+                if node.x + node.radius > x_range[1]:
+                    x_range[1] = node.x + node.radius
+                if node.y - node.radius < y_range[0]:
+                    y_range[0] = node.y - node.radius
+                if node.y + node.radius > y_range[1]:
+                    y_range[1] = node.y + node.radius
+        self.x = x_range[0] - self.width * 2
+        self.end_x = x_range[1] + self.width * 2
+        self.y = y_range[0] - self.width * 2
+        self.end_y = y_range[1] + self.width * 2
+        self.update_range()
+
+    def update_range(self):
         if self.x <= self.end_x:
             self.x_range = (self.x, self.end_x)
         elif self.x >= self.end_x:
@@ -602,13 +648,9 @@ class SelectionBox:
         elif self.y >= self.end_y:
             self.y_range = (self.end_y, self.y)
 
-    def make_selection(self, selected=True):
-        self.selected = selected
-
-
-# Box drag select for group move, Zoom function (deceptively hard), interpret delete key in textbox
-# Fix menu generally, textbox scrolling. Tab to change node, ability to move textbox cursor
-# Save to file, reorganize everything, allow view drag when clicking on edge, add copy paste
+# Zoom function (deceptively hard), interpret delete key in textbox
+# Fix menu generally, textbox scrolling. Tab to select children, shift tab to jump to parent
+# Save/load to file, reorganize everything, add copy paste, ability to move textbox cursor
 
 
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
@@ -671,59 +713,66 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         if mouse_buttons[0]:
             left_mouse_held = True
 
-            node_click = False
-            # Left click node
-            for node in tree.nodes:
-                if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
-                    node_click = True
-                    node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
-                    node.held = True
-                    tree.menu.update_source(node)
-            # Left click background
-            if not node_click:
-                if not allow_box_select:
-                    view_drag = True
+            # Left click in selection box
+            if tree.selection_box is not None and tree.selection_box.selected and \
+                    tree.selection_box.x_range[0] <= mouse_pos[0] <= tree.selection_box.x_range[1] and \
+                    tree.selection_box.y_range[0] <= mouse_pos[1] <= tree.selection_box.y_range[1]:
+                tree.selection_box.held = True
+                tree.selection_box.held_offset = (tree.selection_box.x - mouse_pos[0],
+                                                  tree.selection_box.y - mouse_pos[1])
+            else:
+                node_click = False
+                # Left click node
+                for node in tree.nodes:
+                    if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
+                        node_click = True
+                        node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
+                        node.held = True
+                        tree.menu.update_source(node)
+                # Left click background
+                if not node_click:
+                    if not allow_box_select:
+                        view_drag = True
 
-                    if double_click and double_click_timer > 0:
-                        if not box_select:
-                            create_new_node()
-                            double_click_timer = 0
-                            double_click = False
-                            view_drag = False
-                        else:
-                            box_select = False
+                        if double_click and double_click_timer > 0:
+                            if not box_select:
+                                create_new_node()
+                                double_click_timer = 0
+                                double_click = False
+                                view_drag = False
+                            else:
+                                box_select = False
 
-                    if view_drag:
-                        view_drag_temp = tree.view_offset
-                        orig_mouse_pos = mouse_pos
+                        if view_drag:
+                            view_drag_temp = tree.view_offset
+                            orig_mouse_pos = mouse_pos
 
-                    # Select Edge
-                    edge_click = False
-                    for edge in tree.edges:
-                        if edge.check_collide(mouse_pos):
-                            tree.menu.update_source(edge)
-                            edge_click = True
+                        # Select Edge
+                        edge_click = False
+                        for edge in tree.edges:
+                            if edge.check_collide(mouse_pos):
+                                tree.menu.update_source(edge)
+                                edge_click = True
 
-                    # Select menu item
-                    if not edge_click:
-                        for item in tree.menu.items:
-                            if item.type == 'textbox':
-                                item.blink_counter = 0
-                                item.selected = False
-                                if item.check_collide(mouse_pos):
-                                    item.selected = True
-                elif allow_box_select and not box_select:
-                    box_select = True
-                    if tree.selection is None:
-                        tree.selection = SelectionBox(mouse_pos[0], mouse_pos[1])
-                elif allow_box_select and box_select:
-                    tree.selection.x = mouse_pos[0]
-                    tree.selection.y = mouse_pos[1]
-                    tree.selection.make_selection(selected=False)
+                        # Select menu item
+                        if not edge_click:
+                            for item in tree.menu.items:
+                                if item.type == 'textbox':
+                                    item.blink_counter = 0
+                                    item.selected = False
+                                    if item.check_collide(mouse_pos):
+                                        item.selected = True
+                    elif allow_box_select and not box_select:
+                        box_select = True
+                        if tree.selection_box is None:
+                            tree.selection_box = SelectionBox(mouse_pos[0], mouse_pos[1])
+                    elif allow_box_select and box_select and tree.selection_box is not None:
+                        tree.selection_box = None
+                        tree.selection_box = SelectionBox(mouse_pos[0], mouse_pos[1])
 
-            if not double_click:
-                double_click = True
-                double_click_timer = int(frame_rate / 3)
+                if not double_click:
+                    double_click = True
+                    double_click_timer = int(frame_rate / 3)
 
         # Right click
         if mouse_buttons[2]:
@@ -748,35 +797,56 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         if not mouse_buttons[0]:
             left_mouse_held = False
             view_drag = False
+
+            if tree.selection_box is not None and view_drag_temp == (0, 0) and len(tree.selection_box.selection) > 0:
+                if tree.selection_box.x_range[0] <= mouse_pos[0] <= tree.selection_box.x_range[1] and \
+                        tree.selection_box.y_range[0] <= mouse_pos[1] <= tree.selection_box.y_range[1]:
+                    pass
+                else:
+                    for node in tree.selection_box.selection:
+                        node.selected = False
+                    tree.selection_box = None
+                    box_select = False
+
             tree.view_offset = (tree.view_offset[0] + view_drag_temp[0], tree.view_offset[1] + view_drag_temp[1])
             for node in tree.nodes:
                 node.x -= view_drag_temp[0]
                 node.y -= view_drag_temp[1]
             for edge in tree.edges:
                 edge.update_pos()
-            if tree.selection is not None and tree.selection.selected:
-                tree.selection.x -= view_drag_temp[0]
-                tree.selection.end_x -= view_drag_temp[0]
-                tree.selection.y -= view_drag_temp[1]
-                tree.selection.end_y -= view_drag_temp[1]
+            if tree.selection_box is not None and tree.selection_box.selected:
+                tree.selection_box.held = False
+                tree.selection_box.x -= view_drag_temp[0]
+                tree.selection_box.end_x -= view_drag_temp[0]
+                tree.selection_box.y -= view_drag_temp[1]
+                tree.selection_box.end_y -= view_drag_temp[1]
+                tree.selection_box.update_range()
             view_drag_temp = (0, 0)
 
-            if tree.selection is None:
+            # Select nodes with box
+            if tree.selection_box is not None and not tree.selection_box.selected:
                 for node in tree.nodes:
-                    node.held = False
-            elif not tree.selection.selected:
-                for node in tree.nodes:
-                    if tree.selection.x_range[0] <= node.x <= tree.selection.x_range[1]:
-                        if tree.selection.y_range[0] <= node.y <= tree.selection.y_range[1]:
+                    if tree.selection_box.x_range[0] <= node.x + node.radius and \
+                            node.x - node.radius <= tree.selection_box.x_range[1]:
+                        if tree.selection_box.y_range[0] <= node.y + node.radius and \
+                                node.y - node.radius <= tree.selection_box.y_range[1]:
                             node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
                             node.selected = True
-                            tree.selection.make_selection()
-                        else:
+                            tree.selection_box.make_selection(selected_object=node)
+                        elif node is not tree.menu.source:
                             node.selected = False
                             node.held = False
-                    else:
+                    elif node is not tree.menu.source:
                         node.selected = False
                         node.held = False
+                if len(tree.selection_box.selection) == 0:
+                    tree.selection_box = None
+                    box_select = False
+                else:
+                    tree.selection_box.resize_box()
+            else:
+                for node in tree.nodes:
+                    node.held = False
 
         # Right unclick
         if not mouse_buttons[2]:
@@ -832,9 +902,11 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         view_drag_temp = (orig_mouse_pos[0] - mouse_pos[0], orig_mouse_pos[1] - mouse_pos[1])
 
     # Box select
-    if tree.selection is not None:
-        if not tree.selection.selected:
-            tree.selection.update_pos(mouse_pos)
+    if tree.selection_box is not None:
+        if not tree.selection_box.selected:
+            tree.selection_box.update_end_pos(mouse_pos)
+        elif tree.selection_box.held:
+            tree.selection_box.update_pos(mouse_pos)
 
 
 def zoom_tree(delta_zoom: int):
@@ -860,69 +932,70 @@ def zoom_tree(delta_zoom: int):
 
 
 def load_tree():
-    save_file = open('Dales_game.txt', 'r', errors='ignore')
-    load_nodes = False
-    load_edges = False
-    nodes = []
-    node_temp = []
-    edges = []
-    edge_temp = []
-    # Node format: 0 = id, 1 = label, 2 = x, 3 = y,
-    # 4 = 'parents', ...,  n = 'parents, n+1 = 'children', ..., k = 'children'
-    # Edge format: 0 = parent.id, 1 = child.id, 2 = label
-    for line in save_file:
-        if '**NODES**' in line:
-            load_nodes = True
-            load_edges = False
-            continue
-        elif '**EDGES**' in line:
-            load_nodes = False
-            load_edges = True
-            continue
-        if load_nodes:
-            if 'children' in line:
-                if 'children' in node_temp:
-                    node_temp.append(line.replace('\n', ''))
-                    nodes.append(node_temp)
-                    node_temp = []
+    if os.path.isfile('Dales_game.txt'):
+        save_file = open('Dales_game.txt', 'r', errors='ignore')
+        load_nodes = False
+        load_edges = False
+        nodes = []
+        node_temp = []
+        edges = []
+        edge_temp = []
+        # Node format: 0 = id, 1 = label, 2 = x, 3 = y,
+        # 4 = 'parents', ...,  n = 'parents, n+1 = 'children', ..., k = 'children'
+        # Edge format: 0 = parent.id, 1 = child.id, 2 = label
+        for line in save_file:
+            if '**NODES**' in line:
+                load_nodes = True
+                load_edges = False
+                continue
+            elif '**EDGES**' in line:
+                load_nodes = False
+                load_edges = True
+                continue
+            if load_nodes:
+                if 'children' in line:
+                    if 'children' in node_temp:
+                        node_temp.append(line.replace('\n', ''))
+                        nodes.append(node_temp)
+                        node_temp = []
+                    else:
+                        node_temp.append(line.replace('\n', ''))
                 else:
                     node_temp.append(line.replace('\n', ''))
-            else:
-                node_temp.append(line.replace('\n', ''))
-        elif load_edges:
-            edge_temp.append(line.replace('\n', ''))
-            if len(edge_temp) == 3:
-                edges.append(edge_temp)
-                edge_temp = []
+            elif load_edges:
+                edge_temp.append(line.replace('\n', ''))
+                if len(edge_temp) == 3:
+                    edges.append(edge_temp)
+                    edge_temp = []
 
-    parents = False
-    children = False
-    node_dict = {}
-    for node in nodes:
-        tree.nodes.append(Node(int(node[2]), int(node[3]), label=node[1], node_id=node[0]))
-        node_dict[node[0]] = tree.nodes[-1]
-    for node in nodes:
-        for i in range(4, len(node)):
-            if not parents and node[i] == 'parents':
-                parents = True
-                children = False
-                continue
-            elif parents and node[i] == 'parents':
-                parents = False
-            elif parents and node[i] != 'parents':
-                node_dict[node[0]].parents.append(node_dict[node[i]])
-            elif not children and node[i] == 'children':
-                parents = False
-                children = True
-                continue
-            elif children and node[i] != 'children':
-                node_dict[node[0]].children.append(node_dict[node[i]])
+        parents = False
+        children = False
+        node_dict = {}
+        for node in nodes:
+            tree.nodes.append(Node(int(node[2]), int(node[3]), label=node[1], node_id=node[0]))
+            node_dict[node[0]] = tree.nodes[-1]
+        for node in nodes:
+            for i in range(4, len(node)):
+                if not parents and node[i] == 'parents':
+                    parents = True
+                    children = False
+                    continue
+                elif parents and node[i] == 'parents':
+                    parents = False
+                elif parents and node[i] != 'parents':
+                    node_dict[node[0]].parents.append(node_dict[node[i]])
+                elif not children and node[i] == 'children':
+                    parents = False
+                    children = True
+                    continue
+                elif children and node[i] != 'children':
+                    node_dict[node[0]].children.append(node_dict[node[i]])
 
-    for edge in edges:
-        source = node_dict[edge[0]]
-        target = node_dict[edge[1]]
-        tree.edges.append(Edge(source.x, source.y, target.x, target.y, source, target=target, label=edge[2]))
-    save_file.close()
+        for edge in edges:
+            source = node_dict[edge[0]]
+            target = node_dict[edge[1]]
+            tree.edges.append(Edge(source.x, source.y, target.x, target.y, source, target=target, label=edge[2]))
+        save_file.close()
 
 
 def debug_(variables: list):
