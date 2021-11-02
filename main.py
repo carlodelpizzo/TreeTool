@@ -24,7 +24,8 @@ white = [255, 255, 255]
 light_grey = [200, 200, 200]
 dark_grey = [75, 75, 75]
 grey = [128, 128, 128]
-red = [255, 0, 0]
+red = [220, 30, 0]
+green = [0, 215, 100]
 blue = [0, 200, 255]
 
 # Font
@@ -69,6 +70,7 @@ class Node:
         self.show_label = True
         self.held = held
         self.selected = False
+        self.sourced = False
         self.held_offset = [0, 0]
         self.draw_edge = False
         self.type = 'node'
@@ -95,7 +97,7 @@ class Node:
             self.y = pos[1]
 
     def draw(self, offset=(0, 0)):
-        if self.selected:
+        if self.sourced:
             pygame.draw.circle(screen, red, (self.x - offset[0], self.y - offset[1]), self.radius)
             pygame.draw.circle(screen, self.color, (self.x - offset[0], self.y - offset[1]), self.radius - 2)
         else:
@@ -105,6 +107,9 @@ class Node:
             label = self.font.render(self.label, True, self.color)
             label_x = int(label.get_rect().width / 2)
             screen.blit(label, (self.x - label_x - offset[0], self.y - self.radius - 25 - offset[1]))
+
+        if self.selected:
+            pygame.draw.circle(screen, red, (self.x - offset[0], self.y - offset[1]), int(self.radius / 2))
 
 
 class Edge:
@@ -128,6 +133,7 @@ class Edge:
         self.width = width
         self.held = held
         self.selected = False
+        self.sourced = False
         self.parent = source
         self.child = target
         self.type = 'edge'
@@ -141,7 +147,7 @@ class Edge:
         # Draw line
         pygame.draw.line(screen, self.color, (self.x - offset[0], self.y - offset[1]),
                          (self.end_x - offset[0], self.end_y - offset[1]), self.width)
-        if self.selected:
+        if self.sourced:
             pygame.draw.line(screen, red, (self.x - offset[0], self.y - offset[1]),
                              (self.end_x - offset[0], self.end_y - offset[1]), 1)
 
@@ -152,7 +158,7 @@ class Edge:
         rotation = math.degrees(math.atan2(self.y - self.end_y, self.end_x - self.x)) + 90
         plus = 165
         times = 20
-        if not self.selected:
+        if not self.sourced:
             pygame.draw.polygon(screen, self.color, (middle,
                                                      (int(middle[0] + times * math.sin(math.radians(rotation - plus))),
                                                       int(middle[1] + times * math.cos(math.radians(rotation - plus)))),
@@ -778,7 +784,7 @@ class Menu:
                                 item.width += self.width - self.padding * 2 - item.width - item.label_offset
                                 item.min_width = item.width
             else:
-                self.source.selected = False
+                self.source.sourced = False
                 y_offset = 0
                 if source.type == self.source.type:
                     self.refresh_data()
@@ -812,7 +818,7 @@ class Menu:
                                 item.width += self.width - self.padding * 2 - item.width - item.label_offset
                                 item.min_width = item.width
 
-            source.selected = True
+            source.sourced = True
             self.source = source
             for item in self.items:
                 if item.type == 'textbox' and item.label == 'Label':
@@ -930,7 +936,6 @@ class SelectionBox:
 # Undo function, Zoom function (deceptively hard), don't send delete key in textbox
 # Fix menu generally, textbox scrolling. Tab to select children, shift tab to jump to parent
 # Save/load to file, reorganize everything, add copy paste, ability to move textbox cursor
-# Disable view drag and node creation when clicking item in menu area
 
 
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
@@ -1094,7 +1099,18 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             if tree.selection_box is not None and view_drag_temp == (0, 0) and len(tree.selection_box.selection) > 0:
                 if tree.selection_box.x_range[0] <= mouse_pos[0] <= tree.selection_box.x_range[1] and \
                         tree.selection_box.y_range[0] <= mouse_pos[1] <= tree.selection_box.y_range[1]:
-                    pass
+                    # Left click node
+                    node_click = False
+                    for node in tree.nodes:
+                        if ((node.x - mouse_pos[0]) ** 2 + (node.y - mouse_pos[1]) ** 2) ** 0.5 <= node.radius + 1:
+                            tree.menu.update_source(node)
+                            node_click = True
+                            break
+                    if not node_click:
+                        for edge in tree.edges:
+                            if edge.check_collide(mouse_pos):
+                                tree.menu.update_source(edge)
+                                break
                 else:
                     for node in tree.selection_box.selection:
                         node.selected = False
