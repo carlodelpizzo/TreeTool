@@ -243,6 +243,27 @@ class Tree:
             for edge in self.edges:
                 edge.draw_label(offset=(view_drag_temp[0], view_drag_temp[1]))
 
+        if len(tree.nodes) == 0:
+            temp_label = Label(0, 0, 'Double Click to Create New Node')
+            temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+            temp_label.y = int((screen_height / 2) - (temp_label.height / 2))
+            temp_label.draw()
+        elif len(tree.edges) == 0 and not tree.nodes[0].draw_edge:
+            temp_label = Label(0, 0, 'Right Click Node to Create Edge')
+            temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+            temp_label.y = int(screen_height - temp_label.height - 5)
+            temp_label.draw()
+        elif len(tree.edges) == 0 and tree.nodes[0].draw_edge:
+            temp_label = Label(0, 0, 'Move Mouse to Draw Edge')
+            temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+            temp_label.y = int(screen_height - temp_label.height - 5)
+            temp_label.draw()
+        elif len(tree.nodes) == 1 and len(tree.edges) == 1:
+            temp_label = Label(0, 0, 'Right Click Again to Create New Node')
+            temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+            temp_label.y = int(screen_height - temp_label.height - 5)
+            temp_label.draw()
+
         self.menu.draw()
 
     def save_tree(self):
@@ -1002,11 +1023,16 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         if mouse_buttons[0]:
             left_mouse_held = True
 
+            menu_item_click = False
             for item in tree.menu.items:
                 if item.type == 'button':
+                    if item.check_collide(mouse_pos):
+                        menu_item_click = True
                     item.mouse_input(mouse_pos, mouse_buttons, 'down')
             for fixture in tree.menu.fixtures:
                 if fixture.type == 'button':
+                    if fixture.check_collide(mouse_pos):
+                        menu_item_click = True
                     fixture.mouse_input(mouse_pos, mouse_buttons, 'down')
 
             if mouse_pos[0] > tree.menu.width:
@@ -1076,6 +1102,10 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     if not double_click:
                         double_click = True
                         double_click_timer = int(frame_rate / 3)
+            elif not menu_item_click:
+                for item in tree.menu.items:
+                    if item.type == 'textbox':
+                        item.selected = False
 
         # Right click
         if mouse_buttons[2]:
