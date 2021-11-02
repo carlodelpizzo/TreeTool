@@ -985,21 +985,18 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                                held=True, label=auto_name))
         tree.menu.update_source(tree.nodes[-1])
 
-    distance_to_node = 0
-    for node in tree.nodes:
-        if node.draw_edge:
-            distance_to_node = ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5
-
     if event_type == 'down':
         # Left click
         if mouse_buttons[0]:
             left_mouse_held = True
+
             for item in tree.menu.items:
                 if item.type == 'button':
                     item.mouse_input(mouse_pos, mouse_buttons, 'down')
             for fixture in tree.menu.fixtures:
                 if fixture.type == 'button':
                     fixture.mouse_input(mouse_pos, mouse_buttons, 'down')
+
             if mouse_pos[0] > tree.menu.width:
                 # Left click in selection box
                 if not allow_box_select and tree.selection_box is not None and tree.selection_box.selected and \
@@ -1013,10 +1010,26 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     # Left click node
                     for node in tree.nodes:
                         if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
-                            node_click = True
-                            node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
-                            node.held = True
-                            tree.menu.update_source(node)
+                            if not draw_edge:
+                                node_click = True
+                                node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
+                                node.held = True
+                                tree.menu.update_source(node)
+                            elif draw_edge:
+                                edge = tree.edges[-1]
+                                if node not in edge.parent.children and edge.parent is not node:
+                                    draw_edge = False
+                                    edge.parent.draw_edge = False
+                                    edge.held = False
+                                    edge.child = node
+                                    edge.update_pos()
+                                    if edge.label == '':
+                                        edge.label = edge.parent.label + '>' + edge.child.label
+                                    # Update nodes data
+                                    edge.parent.children.append(edge.child)
+                                    edge.child.parents.append(edge.parent)
+                                    break
+
                     # Left click background
                     if not node_click:
                         if not allow_box_select:
@@ -1068,15 +1081,13 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
         # Right click
         if mouse_buttons[2]:
+            right_mouse_held = True
             if mouse_pos[0] > tree.menu.width:
-                right_mouse_held = True
                 node_click = False
                 # Right click node
                 for node in tree.nodes:
                     if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                         node_click = True
-                        if not draw_edge:
-                            node.draw_edge = True
                         break
                 # Right click background
                 if not node_click:
@@ -1085,103 +1096,113 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     elif event_type == 'up':
         # Left unclick
         if not mouse_buttons[0]:
-            left_mouse_held = False
-            view_drag = False
-            for item in tree.menu.items:
-                if item.type == 'button':
-                    item.mouse_input(mouse_pos, mouse_buttons, 'up')
-                elif item.type == 'textbox' and item.label != 'Children' and item.check_collide(mouse_pos):
-                    item.selected = True
-            for fixture in tree.menu.fixtures:
-                if fixture.type == 'button':
-                    fixture.mouse_input(mouse_pos, mouse_buttons, 'up')
+            if left_mouse_held:
+                view_drag = False
+                for item in tree.menu.items:
+                    if item.type == 'button':
+                        item.mouse_input(mouse_pos, mouse_buttons, 'up')
+                    elif item.type == 'textbox' and item.label != 'Children' and item.check_collide(mouse_pos):
+                        item.selected = True
+                for fixture in tree.menu.fixtures:
+                    if fixture.type == 'button':
+                        fixture.mouse_input(mouse_pos, mouse_buttons, 'up')
 
-            if tree.selection_box is not None and view_drag_temp == (0, 0) and len(tree.selection_box.selection) > 0:
-                if tree.selection_box.x_range[0] <= mouse_pos[0] <= tree.selection_box.x_range[1] and \
-                        tree.selection_box.y_range[0] <= mouse_pos[1] <= tree.selection_box.y_range[1]:
-                    # Left click node
-                    node_click = False
-                    for node in tree.nodes:
-                        if ((node.x - mouse_pos[0]) ** 2 + (node.y - mouse_pos[1]) ** 2) ** 0.5 <= node.radius + 1:
-                            tree.menu.update_source(node)
-                            node_click = True
-                            break
-                    if not node_click:
-                        for edge in tree.edges:
-                            if edge.check_collide(mouse_pos):
-                                tree.menu.update_source(edge)
+                if tree.selection_box is not None and view_drag_temp == (0, 0) and len(tree.selection_box.selection) > 0:
+                    if tree.selection_box.x_range[0] <= mouse_pos[0] <= tree.selection_box.x_range[1] and \
+                            tree.selection_box.y_range[0] <= mouse_pos[1] <= tree.selection_box.y_range[1]:
+                        # Left unclick node
+                        node_click = False
+                        for node in tree.nodes:
+                            if ((node.x - mouse_pos[0]) ** 2 + (node.y - mouse_pos[1]) ** 2) ** 0.5 <= node.radius + 1:
+                                tree.menu.update_source(node)
+                                node_click = True
                                 break
-                else:
-                    for node in tree.selection_box.selection:
-                        node.selected = False
-                    tree.selection_box = None
-                    box_select = False
+                        if not node_click:
+                            for edge in tree.edges:
+                                if edge.check_collide(mouse_pos):
+                                    tree.menu.update_source(edge)
+                                    break
+                    else:
+                        for node in tree.selection_box.selection:
+                            node.selected = False
+                        tree.selection_box = None
+                        box_select = False
 
-            tree.view_offset = (tree.view_offset[0] + view_drag_temp[0], tree.view_offset[1] + view_drag_temp[1])
-            # Update node pos from view drag
-            for node in tree.nodes:
-                node.x -= view_drag_temp[0]
-                node.y -= view_drag_temp[1]
-            for edge in tree.edges:
-                edge.update_pos()
-            if tree.selection_box is not None and tree.selection_box.selected:
-                tree.selection_box.held = False
-                tree.selection_box.x -= view_drag_temp[0]
-                tree.selection_box.end_x -= view_drag_temp[0]
-                tree.selection_box.y -= view_drag_temp[1]
-                tree.selection_box.end_y -= view_drag_temp[1]
-                tree.selection_box.update_range()
-            view_drag_temp = (0, 0)
-
-            # Select nodes with box
-            if tree.selection_box is not None and not tree.selection_box.selected:
+                tree.view_offset = (tree.view_offset[0] + view_drag_temp[0], tree.view_offset[1] + view_drag_temp[1])
+                # Update node pos from view drag
                 for node in tree.nodes:
-                    if tree.selection_box.x_range[0] <= node.x + node.radius and \
-                            node.x - node.radius <= tree.selection_box.x_range[1]:
-                        if tree.selection_box.y_range[0] <= node.y + node.radius and \
-                                node.y - node.radius <= tree.selection_box.y_range[1]:
-                            node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
-                            node.selected = True
-                            tree.selection_box.make_selection(selected_object=node)
+                    node.x -= view_drag_temp[0]
+                    node.y -= view_drag_temp[1]
+                for edge in tree.edges:
+                    edge.update_pos()
+                if tree.selection_box is not None and tree.selection_box.selected:
+                    tree.selection_box.held = False
+                    tree.selection_box.x -= view_drag_temp[0]
+                    tree.selection_box.end_x -= view_drag_temp[0]
+                    tree.selection_box.y -= view_drag_temp[1]
+                    tree.selection_box.end_y -= view_drag_temp[1]
+                    tree.selection_box.update_range()
+                view_drag_temp = (0, 0)
+
+                # Select nodes with box
+                if tree.selection_box is not None and not tree.selection_box.selected:
+                    for node in tree.nodes:
+                        if tree.selection_box.x_range[0] <= node.x + node.radius and \
+                                node.x - node.radius <= tree.selection_box.x_range[1]:
+                            if tree.selection_box.y_range[0] <= node.y + node.radius and \
+                                    node.y - node.radius <= tree.selection_box.y_range[1]:
+                                node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
+                                node.selected = True
+                                tree.selection_box.make_selection(selected_object=node)
+                            elif node is not tree.menu.source:
+                                node.selected = False
+                                node.held = False
                         elif node is not tree.menu.source:
                             node.selected = False
                             node.held = False
-                    elif node is not tree.menu.source:
-                        node.selected = False
-                        node.held = False
-                if len(tree.selection_box.selection) == 0:
-                    tree.selection_box = None
-                    box_select = False
+                    if len(tree.selection_box.selection) == 0:
+                        tree.selection_box = None
+                        box_select = False
+                    else:
+                        tree.selection_box.resize_box()
                 else:
-                    tree.selection_box.resize_box()
-            else:
-                for node in tree.nodes:
-                    node.held = False
+                    for node in tree.nodes:
+                        node.held = False
+
+            left_mouse_held = False
 
         # Right unclick
         if not mouse_buttons[2]:
-            right_mouse_held = False
-            if mouse_pos[0] > tree.menu.width:
-                for node in tree.nodes:
-                    if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
-                        if draw_edge:
-                            edge = tree.edges[-1]
-                            if node not in edge.parent.children:
+            if right_mouse_held:
+                if mouse_pos[0] > tree.menu.width:
+                    for node in tree.nodes:
+                        if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
+                            if not node.draw_edge:
+                                if draw_edge:
+                                    edge = tree.edges[-1]
+                                    if node not in edge.parent.children and edge.parent is not node:
+                                        draw_edge = False
+                                        edge.parent.draw_edge = False
+                                        edge.held = False
+                                        edge.child = node
+                                        edge.update_pos()
+                                        if edge.label == '':
+                                            edge.label = edge.parent.label + '>' + edge.child.label
+                                        # Update nodes data
+                                        edge.parent.children.append(edge.child)
+                                        edge.child.parents.append(edge.parent)
+                                        break
+                                else:
+                                    node.draw_edge = True
+                                    tree.edges.append(Edge(node.x, node.y, mouse_pos[0], mouse_pos[1], node))
+                                    draw_edge = True
+                                break
+                            elif node.draw_edge:
+                                node.draw_edge = False
+                                tree.edges.pop()
                                 draw_edge = False
-                                edge.parent.draw_edge = False
-                                edge.held = False
-                                edge.child = node
-                                edge.update_pos()
-                                if edge.label == '':
-                                    edge.label = edge.parent.label + '>' + edge.child.label
-                                # Update nodes data
-                                edge.parent.children.append(edge.child)
-                                edge.child.parents.append(edge.parent)
 
-                        # Open Node data menu
-                        elif node.draw_edge:
-                            node.draw_edge = False
-                        break
+            right_mouse_held = False
 
     # Button actions
     for item in tree.menu.items:
@@ -1212,14 +1233,6 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     for node in tree.nodes:
         if node.held:
             node.update_pos(mouse_pos)
-        elif not draw_edge and node.draw_edge:
-            if abs(distance_to_node) >= node.radius + 5:
-                tree.edges.append(Edge(node.x - tree.view_offset[0], node.y - tree.view_offset[1], 0, 0, node))
-                draw_edge = True
-        elif node.draw_edge:
-            if abs(distance_to_node) <= node.radius + 1:
-                draw_edge = False
-                tree.edges.pop()
     if draw_edge:
         tree.edges[-1].update_pos(mouse_pos)
 
