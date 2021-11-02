@@ -243,45 +243,46 @@ class Tree:
             for edge in self.edges:
                 edge.draw_label(offset=(view_drag_temp[0], view_drag_temp[1]))
 
-        if len(tree.nodes) == 0:
-            temp_label = Label(0, 0, 'Double Click to Create New Node', font_size=30)
-            temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
-            temp_label.y = int((screen_height / 2) - (temp_label.height / 2))
-            temp_label.draw()
-        elif len(tree.nodes) == 1:
-            if len(tree.edges) == 0:
-                if not tree.nodes[0].draw_edge:
-                    temp_label = Label(0, 0, 'Right Click Node to Create Edge', font_size=30)
-                    temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
-                    temp_label.y = int(screen_height - temp_label.height - 5)
-                    temp_label.draw()
-                elif tree.nodes[0].draw_edge:
-                    temp_label = Label(0, 0, 'Move Mouse to Draw Edge', font_size=30)
-                    temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
-                    temp_label.y = int(screen_height - temp_label.height - 5)
-                    temp_label.draw()
-            elif len(tree.edges) == 1:
-                temp_label = Label(0, 0, 'Right Click Again to Create New Node', font_size=30)
+        if len(tree.nodes) < 3:
+            if len(tree.nodes) == 0:
+                temp_label = Label(0, 0, 'Double Click to Create New Node', font_size=30)
                 temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
-                temp_label.y = int(screen_height - temp_label.height - 5)
+                temp_label.y = int((screen_height / 2) - (temp_label.height / 2))
                 temp_label.draw()
-        elif len(tree.nodes) == 2:
-            if len(tree.edges) == 0:
-                if not (tree.nodes[0].draw_edge or tree.nodes[1].draw_edge):
-                    temp_label = Label(0, 0, 'Right Click Node to Create Edge', font_size=30)
+            elif len(tree.nodes) == 1:
+                if len(tree.edges) == 0:
+                    if not tree.nodes[0].draw_edge:
+                        temp_label = Label(0, 0, 'Right Click Node to Create Edge', font_size=30)
+                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                        temp_label.y = int(screen_height - temp_label.height - 5)
+                        temp_label.draw()
+                    elif tree.nodes[0].draw_edge:
+                        temp_label = Label(0, 0, 'Move Mouse to Draw Edge', font_size=30)
+                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                        temp_label.y = int(screen_height - temp_label.height - 5)
+                        temp_label.draw()
+                elif len(tree.edges) == 1:
+                    temp_label = Label(0, 0, 'Right Click Again to Create New Node', font_size=30)
                     temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
                     temp_label.y = int(screen_height - temp_label.height - 5)
                     temp_label.draw()
-                elif tree.nodes[0].draw_edge or tree.nodes[1].draw_edge:
-                    temp_label = Label(0, 0, 'Move Mouse to Draw Edge', font_size=30)
+            elif len(tree.nodes) == 2:
+                if len(tree.edges) == 0:
+                    if not (tree.nodes[0].draw_edge or tree.nodes[1].draw_edge):
+                        temp_label = Label(0, 0, 'Right Click Node to Create Edge', font_size=30)
+                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                        temp_label.y = int(screen_height - temp_label.height - 5)
+                        temp_label.draw()
+                    elif tree.nodes[0].draw_edge or tree.nodes[1].draw_edge:
+                        temp_label = Label(0, 0, 'Move Mouse to Draw Edge', font_size=30)
+                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                        temp_label.y = int(screen_height - temp_label.height - 5)
+                        temp_label.draw()
+                elif len(tree.edges) == 1 and (tree.nodes[0].draw_edge or tree.nodes[1].draw_edge) and draw_edge:
+                    temp_label = Label(0, 0, 'Right Click on Another Node to Connect', font_size=30)
                     temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
                     temp_label.y = int(screen_height - temp_label.height - 5)
                     temp_label.draw()
-            elif len(tree.edges) == 1 and (tree.nodes[0].draw_edge or tree.nodes[1].draw_edge) and draw_edge:
-                temp_label = Label(0, 0, 'Right Click on Another Node to Connect', font_size=30)
-                temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
-                temp_label.y = int(screen_height - temp_label.height - 5)
-                temp_label.draw()
 
         self.menu.draw()
 
