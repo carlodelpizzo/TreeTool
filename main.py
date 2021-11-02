@@ -900,10 +900,13 @@ class SelectionBox:
 
         self.update_range()
 
-    def make_selection(self, selected=True, selected_object=None):
+    def make_selection(self, selected=True, selected_object=None, hold_offset=(0, 0)):
         self.selected = selected
         if selected_object is not None:
-            self.selection.append(selected_object)
+            for node in selected_object:
+                node.held_offset = [node.x - hold_offset[0], node.y - hold_offset[1]]
+                node.selected = True
+                self.selection.append(node)
 
     def resize_box(self):
         x_range = [screen_width, 0]
@@ -1157,20 +1160,21 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
                 # Select nodes with box
                 if tree.selection_box is not None and not tree.selection_box.selected:
+                    selection = []
                     for node in tree.nodes:
                         if tree.selection_box.x_range[0] <= node.x + node.radius and \
                                 node.x - node.radius <= tree.selection_box.x_range[1]:
                             if tree.selection_box.y_range[0] <= node.y + node.radius and \
                                     node.y - node.radius <= tree.selection_box.y_range[1]:
-                                node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
-                                node.selected = True
-                                tree.selection_box.make_selection(selected_object=node)
+                                selection.append(node)
                             elif node is not tree.menu.source:
                                 node.selected = False
                                 node.held = False
                         elif node is not tree.menu.source:
                             node.selected = False
                             node.held = False
+                    if len(selection) > 1:
+                        tree.selection_box.make_selection(selected_object=selection, hold_offset=mouse_pos)
                     if len(tree.selection_box.selection) == 0:
                         tree.selection_box = None
                         box_select = False
