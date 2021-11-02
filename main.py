@@ -454,7 +454,7 @@ class Tree:
 
 
 class Button:
-    def __init__(self, x: int, y: int, label: str, padding=5, border_width=2, border_color=None, border_off=False,
+    def __init__(self, x: int, y: int, label: str, padding=4, border_width=2, border_color=None, border_off=False,
                  button_color=None, font=default_font, font_size=20, font_color=None, action=None, highlight=False):
         if action is None:
             self.action = ''
@@ -550,7 +550,7 @@ class Button:
 
 
 class TextBox:
-    def __init__(self, x_pos, y_pos, label='', text='', padding=5, border_width=2, selected=False, clear_on_init=False):
+    def __init__(self, x_pos, y_pos, label='', text='', padding=4, border_width=2, selected=False, clear_on_init=False):
         self.type = 'textbox'
         self.color = light_grey
         self.bg_color = bg_color
@@ -675,11 +675,11 @@ class Label:
 
 
 class Menu:
-    def __init__(self, x_pos: int, y_pos: int, source=None, ran_name=ran_name):
+    def __init__(self, x_pos: int, y_pos: int, source=None, file_name=ran_name):
         self.source = source
         self.x = x_pos
         self.y = y_pos
-        self.width = 250
+        self.width = 180
         self.height = screen_height
         self.padding = 7
         self.border_width = 2
@@ -689,28 +689,12 @@ class Menu:
         # for IDE
         if self.x is None:
             self.source = Node(0, 0)
+            self.items.append(Button(0, 0, ''))
+            self.items.append(TextBox(0, 0, ''))
 
-        y_offset = 45
-        width = 0
         if source is None:
-            self.items = [Button(self.x + self.padding, self.y + self.padding,
-                                 'Create New Node', action='node')]
-            width = self.items[0].width + self.padding
-            self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
-                                      label='Label', text=''))
-            y_offset += self.items[0].height + self.padding
-            self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
-                                      label='Children', text=''))
-            for item in self.items:
-                if item.type == 'textbox':
-                    if item.width + item.label_offset > width:
-                        width = item.width + item.label_offset
-        self.width = width + self.padding * 2
-        for item in self.items:
-            if item.type == 'textbox':
-                if item.x + item.width + item.label_offset != width:
-                    item.width += width - item.width - item.label_offset
-                    item.min_width = item.width
+            self.items = [Label(self.x + self.padding, self.y + self.padding, 'No Item Selected')]
+            self.items[-1].x = self.x + (self.width / 2) - (self.items[-1].width / 2)
 
         self.fixtures.append(Button(self.x + self.padding, 0, 'Save', action='save'))
         self.fixtures[-1].y = screen_height - self.fixtures[-1].height - self.padding
@@ -723,7 +707,7 @@ class Menu:
         self.fixtures.append(Label(0, 0, 'To load, name file as:', font_size=15))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
-        self.fixtures.append(Label(0, 0, 'tree_' + ran_name + '.txt', font_size=15, color=blue))
+        self.fixtures.append(Label(0, 0, 'tree_' + file_name + '.txt', font_size=15, color=blue))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
         self.fixtures.append(Label(0, 0, 'Save will save as:', font_size=15))
@@ -764,18 +748,14 @@ class Menu:
         if source is not None:
             if self.source is None:
                 self.source = source
-            else:
-                self.source.selected = False
-                y_offset = 45
-                if source.type == self.source.type:
-                    self.refresh_data()
-
-                elif source.type == 'node':
-                    self.items = [Button(self.x + self.padding, self.y + self.padding,
-                                         'Create New Node', action='node')]
+                y_offset = 0
+                if source.type == 'node':
+                    self.items = [Label(self.x + self.padding, self.y + self.padding, 'Selected Node:')]
+                    self.items[-1].x = self.x + (self.width / 2) - (self.items[-1].width / 2)
+                    y_offset += self.items[-1].height + self.padding
                     self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
                                               label='Label', text=''))
-                    y_offset += self.items[0].height + self.padding
+                    y_offset += self.items[-1].height + self.padding
                     self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
                                               label='Children', text=''))
 
@@ -786,8 +766,45 @@ class Menu:
                                 item.min_width = item.width
 
                 elif source.type == 'edge':
-                    self.items = [(TextBox(self.x + self.padding, self.y + y_offset,
-                                           label='Label', text=source.label))]
+                    self.items = [Label(self.x + self.padding, self.y + self.padding, 'Selected Edge:')]
+                    self.items[-1].x = self.x + (self.width / 2) - (self.items[-1].width / 2)
+                    y_offset += self.items[-1].height + self.padding
+                    self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
+                                              label='Label', text=source.label))
+
+                    for item in self.items:
+                        if item.type == 'textbox':
+                            if item.x + item.width + item.label_offset != self.width - self.padding * 2:
+                                item.width += self.width - self.padding * 2 - item.width - item.label_offset
+                                item.min_width = item.width
+            else:
+                self.source.selected = False
+                y_offset = 0
+                if source.type == self.source.type:
+                    self.refresh_data()
+
+                elif source.type == 'node':
+                    self.items = [Label(self.x + self.padding, self.y + self.padding, 'Selected Node:')]
+                    self.items[-1].x = self.x + (self.width / 2) - (self.items[-1].width / 2)
+                    y_offset += self.items[-1].height + self.padding
+                    self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
+                                              label='Label', text=''))
+                    y_offset += self.items[-1].height + self.padding
+                    self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
+                                              label='Children', text=''))
+
+                    for item in self.items:
+                        if item.type == 'textbox':
+                            if item.x + item.width + item.label_offset != self.width - self.padding * 2:
+                                item.width += self.width - self.padding * 2 - item.width - item.label_offset
+                                item.min_width = item.width
+
+                elif source.type == 'edge':
+                    self.items = [Label(self.x + self.padding, self.y + self.padding, 'Selected Edge:')]
+                    self.items[-1].x = self.x + (self.width / 2) - (self.items[-1].width / 2)
+                    y_offset += self.items[-1].height + self.padding
+                    self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
+                                              label='Label', text=source.label))
 
                     for item in self.items:
                         if item.type == 'textbox':
@@ -801,19 +818,8 @@ class Menu:
                 if item.type == 'textbox' and item.label == 'Label':
                     item.selected = True
         else:
-            y_offset = 45
-            self.items = [Button(self.x + self.padding, self.y + self.padding,
-                                 'Create New Node', action='node')]
-            self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
-                                      label='Label', text=''))
-            y_offset += self.items[0].height + self.padding
-            self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
-                                      label='Children', text=''))
-            for item in self.items:
-                if item.type == 'textbox':
-                    if item.x + item.width + item.label_offset != self.width - self.padding * 2:
-                        item.width += self.width - item.width - item.label_offset - self.padding * 2
-                        item.min_width = item.width
+            self.items = [Label(self.x + self.padding, self.y + self.padding, 'No Item Selected')]
+            self.items[-1].x = self.x + (self.width / 2) - (self.items[-1].width / 2)
 
     def refresh_data(self):
         if self.source is not None:
@@ -919,6 +925,7 @@ class SelectionBox:
             self.y_range = (self.y, self.end_y)
         elif self.y >= self.end_y:
             self.y_range = (self.end_y, self.y)
+
 
 # Undo function, Zoom function (deceptively hard), don't send delete key in textbox
 # Fix menu generally, textbox scrolling. Tab to select children, shift tab to jump to parent
@@ -1078,6 +1085,8 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             for item in tree.menu.items:
                 if item.type == 'button':
                     item.mouse_input(mouse_pos, mouse_buttons, 'up')
+                elif item.type == 'textbox' and item.label != 'Children' and item.check_collide(mouse_pos):
+                    item.selected = True
             for fixture in tree.menu.fixtures:
                 if fixture.type == 'button':
                     fixture.mouse_input(mouse_pos, mouse_buttons, 'up')
@@ -1210,28 +1219,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             tree.selection_box.update_pos(mouse_pos)
 
 
-def zoom_tree(delta_zoom: int):
-    global zoom
-    global zoom_factor
-
-    zoom += delta_zoom
-    if zoom > 0:
-        zoom_factor = 1 + delta_zoom * 0.1
-    elif zoom < 0:
-        zoom_factor = 1 + delta_zoom * 0.05
-    else:
-        zoom_factor = 1
-
-
-def debug_(variables: list):
-    global debug
-
-    if debug != variables:
-        debug = variables
-        print(debug)
-
-
-def bullshit():
+def bullshit_fix():
     if loaded_file == '' and ran_name not in tree.menu.fixtures[4].label_text:
         tree.menu.fixtures[4].update_label('tree_' + ran_name + '.txt')
         tree.menu.resize()
@@ -1257,8 +1245,6 @@ allow_box_select = False
 box_select = False
 orig_mouse_pos = (0, 0)
 view_drag_temp = (0, 0)
-zoom = 0
-zoom_factor = 1
 draw_edge = False
 held_key = ''
 held_key_event = None
@@ -1379,11 +1365,12 @@ while running:
             if left_mouse_held or right_mouse_held:
                 mouse_handler('up', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
+        # Mousewheel
         elif event.type == MOUSEWHEEL:
             if not event.flipped:
-                zoom_tree(event.y)
+                pass
             else:
-                zoom_tree(- event.y)
+                pass
 
         # Resize
         elif event.type == VIDEORESIZE:
@@ -1427,7 +1414,7 @@ while running:
         if double_click_timer == 0:
             double_click = False
 
-    bullshit()
+    bullshit_fix()
     tree.draw_screen()
 
     clock.tick(frame_rate)
