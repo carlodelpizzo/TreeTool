@@ -235,114 +235,217 @@ class Tree:
         self.menu.draw()
 
     def save_tree(self):
-        save_file = open('tree_' + ran_name + '.txt', 'w', errors='ignore')
-        text = '**NODES**\n'
-        for item in self.nodes:
-            text += str(item.id) + '\n' + str(item.label) + '\n' + str(item.x) + '\n' + str(item.y) + '\n' +\
-                    'parents\n'
-            for parent in item.parents:
-                text += parent.id + '\n'
-            text += 'parents' + '\n' + 'children' + '\n'
-            for child in item.children:
-                text += child.id + '\n'
-            text += 'children\n'
-        text += '**EDGES**\n'
-        for item in self.edges:
-            text += item.parent.id + '\n' + item.child.id + '\n' + item.label + '\n'
-        save_file.writelines(text)
-        save_file.close()
+        global loaded_file
 
-    def load_tree(self):
-        global ran_name
-        global old_ran
-
-        if os.path.isfile('tree_load.txt'):
-            self.save_tree()
-
-            old_ran = ran_name
-            ran_name = ''
-            for _ in range(0, 10):
-                ran_name += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
-
-            for fixture in self.menu.fixtures:
-                if fixture.type == 'label':
-                    if old_ran in fixture.label_text:
-                        fixture.update_label(fixture.label_text.replace(old_ran, ran_name))
-
-            tree.menu.resize()
-
-            self.nodes = []
-            self.edges = []
-            self.menu.fixtures = []
-            self.menu = Menu(0, 0)
-            self.view_offset = (0, 0)
-            self.selection_box = None
-
-            save_file = open('tree_load.txt', 'r', errors='ignore')
-            load_nodes = False
-            load_edges = False
-            nodes = []
-            node_temp = []
-            edges = []
-            edge_temp = []
-            # Node format: 0 = id, 1 = label, 2 = x, 3 = y,
-            # 4 = 'parents', ...,  n = 'parents, n+1 = 'children', ..., k = 'children'
-            # Edge format: 0 = parent.id, 1 = child.id, 2 = label
-            for line in save_file:
-                if '**NODES**' in line:
-                    load_nodes = True
-                    load_edges = False
-                    continue
-                elif '**EDGES**' in line:
-                    load_nodes = False
-                    load_edges = True
-                    continue
-                if load_nodes:
-                    if 'children' in line:
-                        if 'children' in node_temp:
-                            node_temp.append(line.replace('\n', ''))
-                            nodes.append(node_temp)
-                            node_temp = []
-                        else:
-                            node_temp.append(line.replace('\n', ''))
-                    else:
-                        node_temp.append(line.replace('\n', ''))
-                elif load_edges:
-                    edge_temp.append(line.replace('\n', ''))
-                    if len(edge_temp) == 3:
-                        edges.append(edge_temp)
-                        edge_temp = []
-
-            parents = False
-            children = False
-            node_dict = {}
-            for node in nodes:
-                self.nodes.append(Node(int(node[2]), int(node[3]), label=node[1], node_id=node[0]))
-                node_dict[node[0]] = self.nodes[-1]
-            for node in nodes:
-                for i in range(4, len(node)):
-                    if not parents and node[i] == 'parents':
-                        parents = True
-                        children = False
-                        continue
-                    elif parents and node[i] == 'parents':
-                        parents = False
-                    elif parents and node[i] != 'parents':
-                        node_dict[node[0]].parents.append(node_dict[node[i]])
-                    elif not children and node[i] == 'children':
-                        parents = False
-                        children = True
-                        continue
-                    elif children and node[i] != 'children':
-                        node_dict[node[0]].children.append(node_dict[node[i]])
-
-            for edge in edges:
-                source = node_dict[edge[0]]
-                target = node_dict[edge[1]]
-                self.edges.append(Edge(source.x, source.y, target.x, target.y, source, target=target, label=edge[2]))
+        if loaded_file == '':
+            save_file = open('tree_' + ran_name + '.txt', 'w', errors='ignore')
+            text = '**NODES**\n'
+            for item in self.nodes:
+                text += str(item.id) + '\n' + str(item.label) + '\n' + str(item.x) + '\n' + str(item.y) + '\n' +\
+                        'parents\n'
+                for parent in item.parents:
+                    text += parent.id + '\n'
+                text += 'parents' + '\n' + 'children' + '\n'
+                for child in item.children:
+                    text += child.id + '\n'
+                text += 'children\n'
+            text += '**EDGES**\n'
+            for item in self.edges:
+                text += item.parent.id + '\n' + item.child.id + '\n' + item.label + '\n'
+            save_file.writelines(text)
             save_file.close()
         else:
-            print('load failed')
+            save_file = open(loaded_file, 'w', errors='ignore')
+            save_file.truncate()
+            text = '**NODES**\n'
+            for item in self.nodes:
+                text += str(item.id) + '\n' + str(item.label) + '\n' + str(item.x) + '\n' + str(item.y) + '\n' + \
+                        'parents\n'
+                for parent in item.parents:
+                    text += parent.id + '\n'
+                text += 'parents' + '\n' + 'children' + '\n'
+                for child in item.children:
+                    text += child.id + '\n'
+                text += 'children\n'
+            text += '**EDGES**\n'
+            for item in self.edges:
+                text += item.parent.id + '\n' + item.child.id + '\n' + item.label + '\n'
+            save_file.writelines(text)
+            save_file.close()
+
+    def load_tree(self, from_file=False, file_path=''):
+        global ran_name
+        global old_ran
+        global loaded_file
+        global loaded_name
+
+        if not from_file:
+            if os.path.isfile('tree_load.txt'):
+                self.save_tree()
+
+                old_ran = ran_name
+                ran_name = ''
+                for _ in range(0, 10):
+                    ran_name += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
+
+                for fixture in self.menu.fixtures:
+                    if fixture.type == 'label':
+                        if old_ran in fixture.label_text:
+                            fixture.update_label(fixture.label_text.replace(old_ran, ran_name))
+
+                tree.menu.resize()
+
+                self.nodes = []
+                self.edges = []
+                self.menu.fixtures = []
+                self.menu = Menu(0, 0)
+                self.view_offset = (0, 0)
+                self.selection_box = None
+
+                save_file = open('tree_load.txt', 'r', errors='ignore')
+                load_nodes = False
+                load_edges = False
+                nodes = []
+                node_temp = []
+                edges = []
+                edge_temp = []
+                # Node format: 0 = id, 1 = label, 2 = x, 3 = y,
+                # 4 = 'parents', ...,  n = 'parents, n+1 = 'children', ..., k = 'children'
+                # Edge format: 0 = parent.id, 1 = child.id, 2 = label
+                for line in save_file:
+                    if '**NODES**' in line:
+                        load_nodes = True
+                        load_edges = False
+                        continue
+                    elif '**EDGES**' in line:
+                        load_nodes = False
+                        load_edges = True
+                        continue
+                    if load_nodes:
+                        if 'children' in line:
+                            if 'children' in node_temp:
+                                node_temp.append(line.replace('\n', ''))
+                                nodes.append(node_temp)
+                                node_temp = []
+                            else:
+                                node_temp.append(line.replace('\n', ''))
+                        else:
+                            node_temp.append(line.replace('\n', ''))
+                    elif load_edges:
+                        edge_temp.append(line.replace('\n', ''))
+                        if len(edge_temp) == 3:
+                            edges.append(edge_temp)
+                            edge_temp = []
+
+                parents = False
+                children = False
+                node_dict = {}
+                for node in nodes:
+                    self.nodes.append(Node(int(node[2]), int(node[3]), label=node[1], node_id=node[0]))
+                    node_dict[node[0]] = self.nodes[-1]
+                for node in nodes:
+                    for i in range(4, len(node)):
+                        if not parents and node[i] == 'parents':
+                            parents = True
+                            children = False
+                            continue
+                        elif parents and node[i] == 'parents':
+                            parents = False
+                        elif parents and node[i] != 'parents':
+                            node_dict[node[0]].parents.append(node_dict[node[i]])
+                        elif not children and node[i] == 'children':
+                            parents = False
+                            children = True
+                            continue
+                        elif children and node[i] != 'children':
+                            node_dict[node[0]].children.append(node_dict[node[i]])
+
+                for edge in edges:
+                    source = node_dict[edge[0]]
+                    target = node_dict[edge[1]]
+                    self.edges.append(Edge(source.x, source.y, target.x, target.y, source, target=target, label=edge[2]))
+                save_file.close()
+        else:
+            if os.path.isfile(file_path) and os.path.splitext(file_path)[1] == '.txt':
+                if len(self.nodes) != 0:
+                    self.save_tree()
+
+                loaded_file = file_path
+                loaded_name = os.path.basename(file_path)[:-4]
+
+                tree.menu.resize()
+
+                self.nodes = []
+                self.edges = []
+                self.menu.fixtures = []
+                self.menu = Menu(0, 0)
+                self.view_offset = (0, 0)
+                self.selection_box = None
+
+                save_file = open(file_path, 'r', errors='ignore')
+                load_nodes = False
+                load_edges = False
+                nodes = []
+                node_temp = []
+                edges = []
+                edge_temp = []
+                # Node format: 0 = id, 1 = label, 2 = x, 3 = y,
+                # 4 = 'parents', ...,  n = 'parents, n+1 = 'children', ..., k = 'children'
+                # Edge format: 0 = parent.id, 1 = child.id, 2 = label
+                for line in save_file:
+                    if '**NODES**' in line:
+                        load_nodes = True
+                        load_edges = False
+                        continue
+                    elif '**EDGES**' in line:
+                        load_nodes = False
+                        load_edges = True
+                        continue
+                    if load_nodes:
+                        if 'children' in line:
+                            if 'children' in node_temp:
+                                node_temp.append(line.replace('\n', ''))
+                                nodes.append(node_temp)
+                                node_temp = []
+                            else:
+                                node_temp.append(line.replace('\n', ''))
+                        else:
+                            node_temp.append(line.replace('\n', ''))
+                    elif load_edges:
+                        edge_temp.append(line.replace('\n', ''))
+                        if len(edge_temp) == 3:
+                            edges.append(edge_temp)
+                            edge_temp = []
+
+                parents = False
+                children = False
+                node_dict = {}
+                for node in nodes:
+                    self.nodes.append(Node(int(node[2]), int(node[3]), label=node[1], node_id=node[0]))
+                    node_dict[node[0]] = self.nodes[-1]
+                for node in nodes:
+                    for i in range(4, len(node)):
+                        if not parents and node[i] == 'parents':
+                            parents = True
+                            children = False
+                            continue
+                        elif parents and node[i] == 'parents':
+                            parents = False
+                        elif parents and node[i] != 'parents':
+                            node_dict[node[0]].parents.append(node_dict[node[i]])
+                        elif not children and node[i] == 'children':
+                            parents = False
+                            children = True
+                            continue
+                        elif children and node[i] != 'children':
+                            node_dict[node[0]].children.append(node_dict[node[i]])
+
+                for edge in edges:
+                    source = node_dict[edge[0]]
+                    target = node_dict[edge[1]]
+                    self.edges.append(
+                        Edge(source.x, source.y, target.x, target.y, source, target=target, label=edge[2]))
+                save_file.close()
 
 
 class Button:
@@ -1103,73 +1206,6 @@ def zoom_tree(delta_zoom: int):
         zoom_factor = 1
 
 
-def load_dale_game():
-    if os.path.isfile('Dales_game.txt'):
-        save_file = open('Dales_game.txt', 'r', errors='ignore')
-        load_nodes = False
-        load_edges = False
-        nodes = []
-        node_temp = []
-        edges = []
-        edge_temp = []
-        # Node format: 0 = id, 1 = label, 2 = x, 3 = y,
-        # 4 = 'parents', ...,  n = 'parents, n+1 = 'children', ..., k = 'children'
-        # Edge format: 0 = parent.id, 1 = child.id, 2 = label
-        for line in save_file:
-            if '**NODES**' in line:
-                load_nodes = True
-                load_edges = False
-                continue
-            elif '**EDGES**' in line:
-                load_nodes = False
-                load_edges = True
-                continue
-            if load_nodes:
-                if 'children' in line:
-                    if 'children' in node_temp:
-                        node_temp.append(line.replace('\n', ''))
-                        nodes.append(node_temp)
-                        node_temp = []
-                    else:
-                        node_temp.append(line.replace('\n', ''))
-                else:
-                    node_temp.append(line.replace('\n', ''))
-            elif load_edges:
-                edge_temp.append(line.replace('\n', ''))
-                if len(edge_temp) == 3:
-                    edges.append(edge_temp)
-                    edge_temp = []
-
-        parents = False
-        children = False
-        node_dict = {}
-        for node in nodes:
-            tree.nodes.append(Node(int(node[2]), int(node[3]), label=node[1], node_id=node[0]))
-            node_dict[node[0]] = tree.nodes[-1]
-        for node in nodes:
-            for i in range(4, len(node)):
-                if not parents and node[i] == 'parents':
-                    parents = True
-                    children = False
-                    continue
-                elif parents and node[i] == 'parents':
-                    parents = False
-                elif parents and node[i] != 'parents':
-                    node_dict[node[0]].parents.append(node_dict[node[i]])
-                elif not children and node[i] == 'children':
-                    parents = False
-                    children = True
-                    continue
-                elif children and node[i] != 'children':
-                    node_dict[node[0]].children.append(node_dict[node[i]])
-
-        for edge in edges:
-            source = node_dict[edge[0]]
-            target = node_dict[edge[1]]
-            tree.edges.append(Edge(source.x, source.y, target.x, target.y, source, target=target, label=edge[2]))
-        save_file.close()
-
-
 def debug_(variables: list):
     global debug
 
@@ -1179,14 +1215,19 @@ def debug_(variables: list):
 
 
 def bullshit():
-    if ran_name not in tree.menu.fixtures[4].label_text:
+    if loaded_file == '' and ran_name not in tree.menu.fixtures[4].label_text:
         tree.menu.fixtures[4].update_label('tree_' + ran_name + '.txt')
+        tree.menu.resize()
+    elif loaded_name != '' and loaded_name not in tree.menu.fixtures[4].label_text:
+        tree.menu.fixtures[4].update_label(loaded_name + '.txt')
         tree.menu.resize()
 
 
 tree = Tree()
 
 # Maybe label these
+loaded_file = ''
+loaded_name = ''
 delete_item = False
 delete_timer = 0
 left_mouse_held = False
@@ -1206,7 +1247,6 @@ held_key = ''
 held_key_event = None
 key_hold_counter = 0
 running = True
-load_dale_game()
 while running:
 
     # Event loop
@@ -1334,6 +1374,10 @@ while running:
             screen_height = event.h
             screen = pygame.display.set_mode((screen_width, screen_height), RESIZABLE)
             tree.menu.resize()
+
+        # Load file
+        elif event.type == DROPFILE:
+            tree.load_tree(from_file=True, file_path=event.file)
 
     mouse_handler('', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
