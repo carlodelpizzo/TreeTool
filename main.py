@@ -45,6 +45,11 @@ for item in letters:
 for item in capital_letters:
     alpha_numeric.append(item)
 
+ran_name = ''
+old_ran = ''
+for _ in range(0, 10):
+    ran_name += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
+
 
 class Node:
     def __init__(self, x_pos: int, y_pos: int, label='', parents=None, children=None, radius=10,
@@ -247,6 +252,98 @@ class Tree:
         save_file.writelines(text)
         save_file.close()
 
+    def load_tree(self):
+        global ran_name
+        global old_ran
+
+        if os.path.isfile('tree_load.txt'):
+            self.save_tree()
+
+            old_ran = ran_name
+            ran_name = ''
+            for _ in range(0, 10):
+                ran_name += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
+
+            for fixture in self.menu.fixtures:
+                if fixture.type == 'label':
+                    if old_ran in fixture.label_text:
+                        fixture.update_label(fixture.label_text.replace(old_ran, ran_name))
+
+            tree.menu.resize()
+
+            self.nodes = []
+            self.edges = []
+            self.menu.fixtures = []
+            self.menu = Menu(0, 0)
+            self.view_offset = (0, 0)
+            self.selection_box = None
+
+            save_file = open('tree_load.txt', 'r', errors='ignore')
+            load_nodes = False
+            load_edges = False
+            nodes = []
+            node_temp = []
+            edges = []
+            edge_temp = []
+            # Node format: 0 = id, 1 = label, 2 = x, 3 = y,
+            # 4 = 'parents', ...,  n = 'parents, n+1 = 'children', ..., k = 'children'
+            # Edge format: 0 = parent.id, 1 = child.id, 2 = label
+            for line in save_file:
+                if '**NODES**' in line:
+                    load_nodes = True
+                    load_edges = False
+                    continue
+                elif '**EDGES**' in line:
+                    load_nodes = False
+                    load_edges = True
+                    continue
+                if load_nodes:
+                    if 'children' in line:
+                        if 'children' in node_temp:
+                            node_temp.append(line.replace('\n', ''))
+                            nodes.append(node_temp)
+                            node_temp = []
+                        else:
+                            node_temp.append(line.replace('\n', ''))
+                    else:
+                        node_temp.append(line.replace('\n', ''))
+                elif load_edges:
+                    edge_temp.append(line.replace('\n', ''))
+                    if len(edge_temp) == 3:
+                        edges.append(edge_temp)
+                        edge_temp = []
+
+            parents = False
+            children = False
+            node_dict = {}
+            for node in nodes:
+                self.nodes.append(Node(int(node[2]), int(node[3]), label=node[1], node_id=node[0]))
+                node_dict[node[0]] = self.nodes[-1]
+            for node in nodes:
+                for i in range(4, len(node)):
+                    if not parents and node[i] == 'parents':
+                        parents = True
+                        children = False
+                        continue
+                    elif parents and node[i] == 'parents':
+                        parents = False
+                    elif parents and node[i] != 'parents':
+                        node_dict[node[0]].parents.append(node_dict[node[i]])
+                    elif not children and node[i] == 'children':
+                        parents = False
+                        children = True
+                        continue
+                    elif children and node[i] != 'children':
+                        node_dict[node[0]].children.append(node_dict[node[i]])
+
+            for edge in edges:
+                source = node_dict[edge[0]]
+                target = node_dict[edge[1]]
+                self.edges.append(Edge(source.x, source.y, target.x, target.y, source, target=target, label=edge[2]))
+            save_file.close()
+        else:
+            print('load failed')
+
 
 class Button:
     def __init__(self, x: int, y: int, label: str, padding=5, border_width=2, border_color=None, border_off=False,
@@ -443,8 +540,34 @@ class TextBox:
         self.cursor_pos = self.text_width + self.x + self.padding + 2
 
 
+class Label:
+    def __init__(self, x: int, y: int, label: str, color=None, font=default_font, font_size=20):
+        if color is None:
+            color = light_grey
+        self.type = 'label'
+        self.x = x
+        self.y = y
+        self.color = color
+        self.font = pygame.font.SysFont(font, font_size)
+        self.label_text = label
+        self.width = int(self.font.render(self.label_text, True, self.color).get_rect().width)
+        self.height = int(self.font.render(self.label_text, True, self.color).get_rect().height)
+
+    def draw(self):
+        screen.blit(self.font.render(self.label_text, True, self.color), (self.x, self.y))
+
+    def update_pos(self, pos: tuple):
+        self.x = pos[0]
+        self.y = pos[1]
+
+    def update_label(self, new_label: str):
+        self.label_text = new_label
+        self.width = int(self.font.render(self.label_text, True, self.color).get_rect().width)
+        self.height = int(self.font.render(self.label_text, True, self.color).get_rect().height)
+
+
 class Menu:
-    def __init__(self, x_pos: int, y_pos: int, source=None):
+    def __init__(self, x_pos: int, y_pos: int, source=None, ran_name=ran_name):
         self.source = source
         self.x = x_pos
         self.y = y_pos
@@ -453,6 +576,7 @@ class Menu:
         self.padding = 7
         self.border_width = 2
         self.items = []
+        self.fixtures = []
 
         # for IDE
         if self.x is None:
@@ -480,11 +604,32 @@ class Menu:
                     item.width += width - item.width - item.label_offset
                     item.min_width = item.width
 
+        self.fixtures.append(Button(self.x + self.padding, 0, 'Save', action='save'))
+        self.fixtures[-1].y = screen_height - self.fixtures[-1].height - self.padding
+        self.fixtures.append(Button(0, 0, 'Load', action='load'))
+        self.fixtures[-1].x = self.x + self.width - self.fixtures[-1].width - self.padding
+        self.fixtures[-1].y = screen_height - self.fixtures[-1].height - self.padding
+        self.fixtures.append(Label(0, 0, 'tree_load.txt', font_size=15))
+        self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
+        self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
+        self.fixtures.append(Label(0, 0, 'To load, name file as:', font_size=15))
+        self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
+        self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
+        self.fixtures.append(Label(0, 0, 'tree_' + ran_name + '.txt', font_size=15, color=blue))
+        self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
+        self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
+        self.fixtures.append(Label(0, 0, 'Save will save as:', font_size=15))
+        self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
+        self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
+
     def draw(self):
         tree.menu.refresh_data()
 
         for item in self.items:
             item.draw()
+
+        for fixture in self.fixtures:
+            fixture.draw()
 
         # Left edge
         pygame.draw.rect(screen, light_grey, (self.x, self.y, self.border_width, self.height))
@@ -569,6 +714,15 @@ class Menu:
                             item.clear_text()
                             item.update_text(str(len(self.source.children)))
 
+    def resize(self):
+        self.height = screen_height
+        self.fixtures[0].y = screen_height - self.fixtures[0].height - self.padding
+        self.fixtures[1].y = screen_height - self.fixtures[1].height - self.padding
+        for i in range(len(self.fixtures)):
+            if self.fixtures[i].type == 'label':
+                self.fixtures[i].x = self.x + (self.width / 2) - (self.fixtures[i].width / 2)
+                self.fixtures[i].y = self.fixtures[i - 1].y - self.padding - self.fixtures[i].height
+
 
 class SelectionBox:
     def __init__(self, x_pos: int, y_pos: int, width=2, color=None):
@@ -648,9 +802,10 @@ class SelectionBox:
         elif self.y >= self.end_y:
             self.y_range = (self.end_y, self.y)
 
-# Zoom function (deceptively hard), interpret delete key in textbox
+# Undo function, Zoom function (deceptively hard), don't send delete key in textbox
 # Fix menu generally, textbox scrolling. Tab to select children, shift tab to jump to parent
 # Save/load to file, reorganize everything, add copy paste, ability to move textbox cursor
+# Disable view drag and node creation when clicking item in menu area
 
 
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
@@ -709,6 +864,9 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         for item in tree.menu.items:
             if item.type == 'button':
                 item.mouse_input(mouse_pos, mouse_buttons, 'down')
+        for fixture in tree.menu.fixtures:
+            if fixture.type == 'button':
+                fixture.mouse_input(mouse_pos, mouse_buttons, 'down')
         # Left click
         if mouse_buttons[0]:
             left_mouse_held = True
@@ -797,6 +955,9 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         for item in tree.menu.items:
             if item.type == 'button':
                 item.mouse_input(mouse_pos, mouse_buttons, 'up')
+        for fixture in tree.menu.fixtures:
+            if fixture.type == 'button':
+                fixture.mouse_input(mouse_pos, mouse_buttons, 'up')
         # Left unclick
         if not mouse_buttons[0]:
             left_mouse_held = False
@@ -886,6 +1047,21 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 item.run = False
             else:
                 item.mouse_input(mouse_pos, mouse_buttons, '')
+    for fixture in tree.menu.fixtures:
+        if fixture.type == 'button':
+            if fixture.run:
+                if fixture.action == 'save':
+                    tree.save_tree()
+                    fixture.run = False
+                    fixture.pressed = False
+                    fixture.pressed_draw = False
+                elif fixture.action == 'load':
+                    tree.load_tree()
+                    fixture.run = False
+                    fixture.pressed = False
+                    fixture.pressed_draw = False
+            else:
+                fixture.mouse_input(mouse_pos, mouse_buttons, '')
 
     # Nodes / Edges
     for node in tree.nodes:
@@ -927,7 +1103,7 @@ def zoom_tree(delta_zoom: int):
         zoom_factor = 1
 
 
-def load_tree():
+def load_dale_game():
     if os.path.isfile('Dales_game.txt'):
         save_file = open('Dales_game.txt', 'r', errors='ignore')
         load_nodes = False
@@ -1002,10 +1178,13 @@ def debug_(variables: list):
         print(debug)
 
 
+def bullshit():
+    if ran_name not in tree.menu.fixtures[4].label_text:
+        tree.menu.fixtures[4].update_label('tree_' + ran_name + '.txt')
+        tree.menu.resize()
+
+
 tree = Tree()
-ran_name = ''
-for _ in range(0, 10):
-    ran_name += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
 
 # Maybe label these
 delete_item = False
@@ -1027,9 +1206,9 @@ held_key = ''
 held_key_event = None
 key_hold_counter = 0
 running = True
-load_tree()
+load_dale_game()
 while running:
-    tree.draw_screen()
+
     # Event loop
     for event in pygame.event.get():
         keys = pygame.key.get_pressed()
@@ -1154,7 +1333,7 @@ while running:
             screen_width = event.w
             screen_height = event.h
             screen = pygame.display.set_mode((screen_width, screen_height), RESIZABLE)
-            tree.menu.height = screen_height
+            tree.menu.resize()
 
     mouse_handler('', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
@@ -1186,6 +1365,9 @@ while running:
         double_click_timer -= 1
         if double_click_timer == 0:
             double_click = False
+
+    bullshit()
+    tree.draw_screen()
 
     clock.tick(frame_rate)
     pygame.display.flip()
