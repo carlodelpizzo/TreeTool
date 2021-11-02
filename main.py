@@ -277,7 +277,7 @@ class Tree:
                     temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
                     temp_label.y = int(screen_height - temp_label.height - 5)
                     temp_label.draw()
-            elif len(tree.edges) == 1 and (tree.nodes[0].draw_edge or tree.nodes[1].draw_edge):
+            elif len(tree.edges) == 1 and (tree.nodes[0].draw_edge or tree.nodes[1].draw_edge) and draw_edge:
                 temp_label = Label(0, 0, 'Right Click on Another Node to Connect', font_size=30)
                 temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
                 temp_label.y = int(screen_height - temp_label.height - 5)
