@@ -818,12 +818,15 @@ class Menu:
                                 item.width += self.width - self.padding * 2 - item.width - item.label_offset
                                 item.min_width = item.width
 
-            source.sourced = True
             self.source = source
+            self.source.sourced = True
+
+            # Select Label textbox
             for item in self.items:
                 if item.type == 'textbox' and item.label == 'Label':
                     item.selected = True
         else:
+            self.source = None
             self.items = [Label(self.x + self.padding, self.y + self.padding, 'No Item Selected')]
             self.items[-1].x = self.x + (self.width / 2) - (self.items[-1].width / 2)
 
@@ -933,7 +936,7 @@ class SelectionBox:
             self.y_range = (self.end_y, self.y)
 
 
-# Undo function, Zoom function (deceptively hard), don't send delete key in textbox
+# Undo function, Zoom function (deceptively hard)
 # Fix menu generally, textbox scrolling. Tab to select children, shift tab to jump to parent
 # Save/load to file, reorganize everything, add copy paste, ability to move textbox cursor
 
@@ -951,7 +954,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global box_select
     global allow_box_select
 
-    def create_new_node():
+    def create_new_node(held=True, update_menu=True):
         global auto_name
 
         if auto_name == '':
@@ -982,8 +985,14 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 return
 
         tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
-                               held=True, label=auto_name))
-        tree.menu.update_source(tree.nodes[-1])
+                               held=held, label=auto_name))
+        if update_menu:
+            tree.menu.update_source(tree.nodes[-1])
+
+    # distance_to_node = 0
+    # for node in tree.nodes:
+    #     if node.draw_edge:
+    #         distance_to_node = ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5
 
     if event_type == 'down':
         # Left click
@@ -1015,20 +1024,6 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                                 node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
                                 node.held = True
                                 tree.menu.update_source(node)
-                            elif draw_edge:
-                                edge = tree.edges[-1]
-                                if node not in edge.parent.children and edge.parent is not node:
-                                    draw_edge = False
-                                    edge.parent.draw_edge = False
-                                    edge.held = False
-                                    edge.child = node
-                                    edge.update_pos()
-                                    if edge.label == '':
-                                        edge.label = edge.parent.label + '>' + edge.child.label
-                                    # Update nodes data
-                                    edge.parent.children.append(edge.child)
-                                    edge.child.parents.append(edge.parent)
-                                    break
 
                     # Left click background
                     if not node_click:
@@ -1088,11 +1083,27 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 for node in tree.nodes:
                     if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                         node_click = True
-                        break
+                        if not draw_edge:
+                            if not node.draw_edge:
+                                node.draw_edge = True
+                            else:
+                                node.draw_edge = False
+                            break
                 # Right click background
                 if not node_click:
                     if draw_edge:
-                        create_new_node()
+                        create_new_node(held=False, update_menu=False)
+                        edge = tree.edges[-1]
+                        draw_edge = False
+                        edge.parent.draw_edge = False
+                        edge.held = False
+                        edge.child = tree.nodes[-1]
+                        edge.update_pos()
+                        if edge.label == '':
+                            edge.label = edge.parent.label + '>' + edge.child.label
+                        # Update nodes data
+                        edge.parent.children.append(edge.child)
+                        edge.child.parents.append(edge.parent)
     elif event_type == 'up':
         # Left unclick
         if not mouse_buttons[0]:
@@ -1177,30 +1188,20 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 if mouse_pos[0] > tree.menu.width:
                     for node in tree.nodes:
                         if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
-                            if not node.draw_edge:
-                                if draw_edge:
-                                    edge = tree.edges[-1]
-                                    if node not in edge.parent.children and edge.parent is not node:
-                                        draw_edge = False
-                                        edge.parent.draw_edge = False
-                                        edge.held = False
-                                        edge.child = node
-                                        edge.update_pos()
-                                        if edge.label == '':
-                                            edge.label = edge.parent.label + '>' + edge.child.label
-                                        # Update nodes data
-                                        edge.parent.children.append(edge.child)
-                                        edge.child.parents.append(edge.parent)
-                                        break
-                                else:
-                                    node.draw_edge = True
-                                    tree.edges.append(Edge(node.x, node.y, mouse_pos[0], mouse_pos[1], node))
-                                    draw_edge = True
-                                break
-                            elif node.draw_edge:
-                                node.draw_edge = False
-                                tree.edges.pop()
-                                draw_edge = False
+                            if draw_edge and not node.draw_edge:
+                                edge = tree.edges[-1]
+                                if node not in edge.parent.children and edge.parent is not node:
+                                    draw_edge = False
+                                    edge.parent.draw_edge = False
+                                    edge.held = False
+                                    edge.child = node
+                                    edge.update_pos()
+                                    if edge.label == '':
+                                        edge.label = edge.parent.label + '>' + edge.child.label
+                                    # Update nodes data
+                                    edge.parent.children.append(edge.child)
+                                    edge.child.parents.append(edge.parent)
+                                    break
 
             right_mouse_held = False
 
@@ -1233,6 +1234,17 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     for node in tree.nodes:
         if node.held:
             node.update_pos(mouse_pos)
+        elif node.draw_edge:
+            if not draw_edge:
+                distance_to_node = ((node.x - mouse_pos[0]) ** 2 + (node.y - mouse_pos[1]) ** 2) ** 0.5
+                if abs(distance_to_node) >= node.radius + 5:
+                    tree.edges.append(Edge(node.x - tree.view_offset[0], node.y - tree.view_offset[1], 0, 0, node))
+                    draw_edge = True
+            else:
+                distance_to_node = ((node.x - mouse_pos[0]) ** 2 + (node.y - mouse_pos[1]) ** 2) ** 0.5
+                if abs(distance_to_node) <= node.radius + 1:
+                    draw_edge = False
+                    tree.edges.pop()
     if draw_edge:
         tree.edges[-1].update_pos(mouse_pos)
 
@@ -1311,32 +1323,8 @@ while running:
                         node.y += tree.view_offset[1]
                     tree.view_offset = (0, 0)
 
-            # Send input to Menu textbox
-            for m_item in tree.menu.items:
-                if m_item.type == 'textbox':
-                    if tree.menu.source is not None and m_item.selected:
-                        if keys[K_BACKSPACE]:
-                            held_key = 'backspace'
-                            key_hold_counter = int(frame_rate)
-                            m_item.update_text(backspace=True)
-                        elif m_item.label == 'Children':
-                            if event.unicode in integers:
-                                held_key = event.unicode
-                                held_key_event = event
-                                key_hold_counter = int(frame_rate)
-                                m_item.update_text(event.unicode)
-                        else:
-                            held_key = event.unicode
-                            held_key_event = event
-                            key_hold_counter = int(frame_rate)
-                            m_item.update_text(event.unicode)
-
-                        # update node data
-                        if m_item.label == 'Label':
-                            tree.menu.source.label = m_item.text
-
             # Delete selected item
-            if keys[K_DELETE]:
+            elif keys[K_DELETE]:
                 if not delete_item:
                     delete_item = True
                     delete_timer = int(frame_rate / 2)
@@ -1371,6 +1359,31 @@ while running:
 
                     tree.menu.update_source(None)
                     delete_item = False
+
+            else:
+                # Send input to Menu textbox
+                for m_item in tree.menu.items:
+                    if m_item.type == 'textbox':
+                        if tree.menu.source is not None and m_item.selected:
+                            if keys[K_BACKSPACE]:
+                                held_key = 'backspace'
+                                key_hold_counter = int(frame_rate)
+                                m_item.update_text(backspace=True)
+                            elif m_item.label == 'Children':
+                                if event.unicode in integers:
+                                    held_key = event.unicode
+                                    held_key_event = event
+                                    key_hold_counter = int(frame_rate)
+                                    m_item.update_text(event.unicode)
+                            else:
+                                held_key = event.unicode
+                                held_key_event = event
+                                key_hold_counter = int(frame_rate)
+                                m_item.update_text(event.unicode)
+
+                            # update node data
+                            if m_item.label == 'Label':
+                                tree.menu.source.label = m_item.text
 
         # Key up events
         elif event.type == KEYUP:
@@ -1431,13 +1444,13 @@ while running:
     elif key_hold_counter > 0:
         key_hold_counter -= 1
 
-    # Double press to delete
+    # Double press to delete timer
     if delete_item and delete_timer > 0:
         delete_timer -= 1
         if delete_timer == 0:
             delete_item = False
 
-    # Double click
+    # Double click timer
     if double_click and double_click_timer > 0:
         double_click_timer -= 1
         if double_click_timer == 0:
