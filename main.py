@@ -939,7 +939,7 @@ class SelectionBox:
             self.y_range = (self.end_y, self.y)
 
 
-# Undo function, Zoom function (deceptively hard)
+# Undo function, Zoom function (deceptively hard), auto-sort feature
 # Fix menu generally, textbox scrolling. Tab to select children, shift tab to jump to parent
 # Save/load to file, reorganize everything, add copy paste, ability to move textbox cursor
 
