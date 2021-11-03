@@ -1392,7 +1392,16 @@ def delete_object(deleted_object=None, undo=False):
                         edge_.child.parents.append(edge_.parent)
                         tree.edges.append(edge_)
                         deleted_objects.pop(deleted_objects.index(edge_))
+                    edges_to_restore = []
                 break
+
+        if len(edges_to_restore) > 0:
+            for edge_ in edges_to_restore:
+                edge_.deleted = False
+                edge_.parent.children.append(edge_.child)
+                edge_.child.parents.append(edge_.parent)
+                tree.edges.append(edge_)
+                deleted_objects.pop(deleted_objects.index(edge_))
 
 
 tree = Tree()
