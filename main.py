@@ -1353,6 +1353,8 @@ def delete_object(deleted_object=None, undo=False):
         deleted_object.selected = False
         deleted_object.held = False
         deleted_objects.append(deleted_object)
+        if tree.selection_box is not None and deleted_object in tree.selection_box.selection:
+            tree.selection_box.selection.pop(tree.selection_box.selection.index(deleted_object))
 
         if deleted_object.type == 'node':
             if len(deleted_object.parents) != 0 or len(deleted_object.children) != 0:
@@ -1402,6 +1404,9 @@ def delete_object(deleted_object=None, undo=False):
                 edge_.child.parents.append(edge_.parent)
                 tree.edges.append(edge_)
                 deleted_objects.pop(deleted_objects.index(edge_))
+
+    if tree.selection_box is not None:
+        tree.selection_box.resize_box()
 
 
 tree = Tree()
