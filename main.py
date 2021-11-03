@@ -1313,7 +1313,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 if abs(distance_to_node) <= node.radius + 1:
                     draw_edge = False
                     tree.edges.pop()
-    if draw_edge:
+    if draw_edge and not view_drag:
         tree.edges[-1].update_pos(mouse_pos)
 
     # View drag
