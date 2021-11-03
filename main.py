@@ -39,12 +39,12 @@ letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
 capital_letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
                    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 alpha_numeric = []
-for item in integers:
-    alpha_numeric.append(item)
-for item in letters:
-    alpha_numeric.append(item)
-for item in capital_letters:
-    alpha_numeric.append(item)
+for item_ in integers:
+    alpha_numeric.append(item_)
+for item_ in letters:
+    alpha_numeric.append(item_)
+for item_ in capital_letters:
+    alpha_numeric.append(item_)
 
 ran_name = ''
 old_ran = ''
@@ -253,34 +253,40 @@ class Tree:
                 if len(tree.edges) == 0:
                     if not tree.nodes[0].draw_edge:
                         temp_label = Label(0, 0, 'Right Click Node to Create Edge', font_size=30)
-                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
+                        temp_label.x += tree.menu.width
                         temp_label.y = int(screen_height - temp_label.height - 5)
                         temp_label.draw()
                     elif tree.nodes[0].draw_edge:
                         temp_label = Label(0, 0, 'Move Mouse to Draw Edge', font_size=30)
-                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
+                        temp_label.x += tree.menu.width
                         temp_label.y = int(screen_height - temp_label.height - 5)
                         temp_label.draw()
                 elif len(tree.edges) == 1:
                     temp_label = Label(0, 0, 'Right Click Again to Create New Node', font_size=30)
-                    temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                    temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
+                    temp_label.x += tree.menu.width
                     temp_label.y = int(screen_height - temp_label.height - 5)
                     temp_label.draw()
             elif len(tree.nodes) == 2:
                 if len(tree.edges) == 0:
                     if not (tree.nodes[0].draw_edge or tree.nodes[1].draw_edge):
                         temp_label = Label(0, 0, 'Right Click Node to Create Edge', font_size=30)
-                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
+                        temp_label.x += tree.menu.width
                         temp_label.y = int(screen_height - temp_label.height - 5)
                         temp_label.draw()
                     elif tree.nodes[0].draw_edge or tree.nodes[1].draw_edge:
                         temp_label = Label(0, 0, 'Move Mouse to Draw Edge', font_size=30)
-                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
+                        temp_label.x += tree.menu.width
                         temp_label.y = int(screen_height - temp_label.height - 5)
                         temp_label.draw()
                 elif len(tree.edges) == 1 and (tree.nodes[0].draw_edge or tree.nodes[1].draw_edge) and draw_edge:
                     temp_label = Label(0, 0, 'Right Click on Another Node to Connect', font_size=30)
-                    temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                    temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
+                    temp_label.x += tree.menu.width
                     temp_label.y = int(screen_height - temp_label.height - 5)
                     temp_label.draw()
 
@@ -415,7 +421,8 @@ class Tree:
                 for edge in edges:
                     source = node_dict[edge[0]]
                     target = node_dict[edge[1]]
-                    self.edges.append(Edge(source.x, source.y, target.x, target.y, source, target=target, label=edge[2]))
+                    self.edges.append(Edge(source.x, source.y, target.x, target.y, source,
+                                           target=target, label=edge[2]))
                 save_file.close()
         else:
             if os.path.isfile(file_path) and os.path.splitext(file_path)[1] == '.txt':
@@ -748,7 +755,10 @@ class Menu:
         self.fixtures.append(Button(0, 0, 'Load', action='load'))
         self.fixtures[-1].x = self.x + self.width - self.fixtures[-1].width - self.padding
         self.fixtures[-1].y = screen_height - self.fixtures[-1].height - self.padding
-        self.fixtures.append(Label(0, 0, 'tree_load.txt', font_size=15))
+        self.fixtures.append(Label(0, 0, 'Or Drag/Drop Tree File', font_size=15))
+        self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
+        self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
+        self.fixtures.append(Label(0, 0, 'tree_load.txt', font_size=15, color=blue))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
         self.fixtures.append(Label(0, 0, 'To load, name file as:', font_size=15))
@@ -1023,8 +1033,8 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                         auto_name += 'A'
                     break
 
-        for node in tree.nodes:
-            if auto_name == node.label:
+        for node__ in tree.nodes:
+            if auto_name == node__.label:
                 create_new_node()
                 return
 
@@ -1171,7 +1181,8 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     if fixture.type == 'button':
                         fixture.mouse_input(mouse_pos, mouse_buttons, 'up')
 
-                if tree.selection_box is not None and view_drag_temp == (0, 0) and len(tree.selection_box.selection) > 0:
+                if tree.selection_box is not None and \
+                        view_drag_temp == (0, 0) and len(tree.selection_box.selection) > 0:
                     if tree.selection_box.x_range[0] <= mouse_pos[0] <= tree.selection_box.x_range[1] and \
                             tree.selection_box.y_range[0] <= mouse_pos[1] <= tree.selection_box.y_range[1]:
                         # Left unclick node
@@ -1315,11 +1326,11 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
 
 def bullshit_fix():
-    if loaded_file == '' and ran_name not in tree.menu.fixtures[4].label_text:
-        tree.menu.fixtures[4].update_label('tree_' + ran_name + '.txt')
+    if loaded_file == '' and ran_name not in tree.menu.fixtures[5].label_text:
+        tree.menu.fixtures[5].update_label('tree_' + ran_name + '.txt')
         tree.menu.resize()
-    elif loaded_name != '' and loaded_name not in tree.menu.fixtures[4].label_text:
-        tree.menu.fixtures[4].update_label(loaded_name + '.txt')
+    elif loaded_name != '' and loaded_name not in tree.menu.fixtures[5].label_text:
+        tree.menu.fixtures[5].update_label(loaded_name + '.txt')
         tree.menu.resize()
 
 
@@ -1372,9 +1383,9 @@ while running:
 
                 # Return to original view position
                 elif keys[K_o]:
-                    for node in tree.nodes:
-                        node.x += tree.view_offset[0]
-                        node.y += tree.view_offset[1]
+                    for node_ in tree.nodes:
+                        node_.x += tree.view_offset[0]
+                        node_.y += tree.view_offset[1]
                     tree.view_offset = (0, 0)
 
             # Delete selected item
@@ -1386,58 +1397,57 @@ while running:
                     if tree.menu.source is not None:
                         if tree.menu.source.type == 'node':
                             if len(tree.menu.source.parents) != 0:
-                                for parent in tree.menu.source.parents:
-                                    parent.children.pop(parent.children.index(tree.menu.source))
+                                for parent_ in tree.menu.source.parents:
+                                    parent_.children.pop(parent_.children.index(tree.menu.source))
                             if len(tree.menu.source.children) != 0:
-                                for child in tree.menu.source.children:
-                                    child.parents.pop(child.parents.index(tree.menu.source))
+                                for child_ in tree.menu.source.children:
+                                    child_.parents.pop(child_.parents.index(tree.menu.source))
                             if len(tree.menu.source.parents) != 0 or len(tree.menu.source.children) != 0:
                                 pop_list = []
-                                for edge in tree.edges:
-                                    if edge.parent == tree.menu.source or edge.child == tree.menu.source:
-                                        pop_list.append(tree.edges.index(edge))
-                                pop_list.sort(reverse=True)
-                                for i in range(len(pop_list)):
-                                    tree.edges.pop(pop_list[i])
+                                for edge_ in reversed(tree.edges):
+                                    if edge_.parent == tree.menu.source or edge_.child == tree.menu.source:
+                                        pop_list.append(tree.edges.index(edge_))
+                                for index_ in pop_list:
+                                    tree.edges.pop(index_)
                             tree.nodes.pop(tree.nodes.index(tree.menu.source))
                         elif tree.menu.source.type == 'edge':
                             # For IDE
                             if delete_timer < 0:
-                                edge = Edge(0, 0, 0, 0, None)
+                                edge_ = Edge(0, 0, 0, 0, None)
                             else:
-                                edge = tree.menu.source
+                                edge_ = tree.menu.source
 
-                            edge.parent.children.pop(edge.parent.children.index(edge.child))
-                            edge.child.parents.pop(edge.child.parents.index(edge.parent))
-                            tree.edges.pop(tree.edges.index(edge))
+                            edge_.parent.children.pop(edge_.parent.children.index(edge_.child))
+                            edge_.child.parents.pop(edge_.child.parents.index(edge_.parent))
+                            tree.edges.pop(tree.edges.index(edge_))
 
                     tree.menu.update_source(None)
                     delete_item = False
 
             else:
                 # Send input to Menu textbox
-                for m_item in tree.menu.items:
-                    if m_item.type == 'textbox':
-                        if tree.menu.source is not None and m_item.selected:
+                for item_ in tree.menu.items:
+                    if item_.type == 'textbox':
+                        if tree.menu.source is not None and item_.selected:
                             if keys[K_BACKSPACE]:
                                 held_key = 'backspace'
                                 key_hold_counter = int(frame_rate)
-                                m_item.update_text(backspace=True)
-                            elif m_item.label == 'Children':
+                                item_.update_text(backspace=True)
+                            elif item_.label == 'Children':
                                 if event.unicode in integers:
                                     held_key = event.unicode
                                     held_key_event = event
                                     key_hold_counter = int(frame_rate)
-                                    m_item.update_text(event.unicode)
+                                    item_.update_text(event.unicode)
                             else:
                                 held_key = event.unicode
                                 held_key_event = event
                                 key_hold_counter = int(frame_rate)
-                                m_item.update_text(event.unicode)
+                                item_.update_text(event.unicode)
 
                             # update node data
-                            if m_item.label == 'Label':
-                                tree.menu.source.label = m_item.text
+                            if item_.label == 'Label':
+                                tree.menu.source.label = item_.text
 
         # Key up events
         elif event.type == KEYUP:
@@ -1484,16 +1494,16 @@ while running:
     # Timers
     if held_key != '' and key_hold_counter == 0:
         key_hold_counter = int(frame_rate / 30)
-        for m_item in tree.menu.items:
-            if m_item.type == 'textbox':
-                if m_item.selected:
+        for item_ in tree.menu.items:
+            if item_.type == 'textbox':
+                if item_.selected:
                     if held_key == 'backspace':
-                        m_item.update_text(backspace=True)
+                        item_.update_text(backspace=True)
                     else:
-                        m_item.update_text(held_key)
+                        item_.update_text(held_key)
                 # Update source object
-                    if m_item.label == 'Label':
-                        tree.menu.source.label = m_item.text
+                    if item_.label == 'Label':
+                        tree.menu.source.label = item_.text
                     break
     elif key_hold_counter > 0:
         key_hold_counter -= 1
