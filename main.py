@@ -993,7 +993,7 @@ class SelectionBox:
             self.y_range = (self.end_y, self.y)
 
 
-# Undo function, Zoom function (deceptively hard), auto-sort feature
+# Undo function, Zoom function (deceptively hard), auto-sort feature, color palette choices
 # Fix menu generally, textbox scrolling. Tab to select children, shift tab to jump to parent
 # Save/load to file, reorganize everything, add copy paste, ability to move textbox cursor
 
@@ -1013,6 +1013,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
     def create_new_node(held=True, update_menu=True):
         global auto_name
+        global draw_edge
 
         if auto_name == '':
             auto_name = 'A'
@@ -1041,15 +1042,28 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 create_new_node()
                 return
 
-        tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
-                               held=held, label=auto_name))
+        # Why do I need to do this draw_edge check??
+        if not draw_edge:
+            tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
+                                   held=held, label=auto_name))
+        else:
+            tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label=auto_name))
+
         if update_menu:
             tree.menu.update_source(tree.nodes[-1])
 
-    # distance_to_node = 0
-    # for node in tree.nodes:
-    #     if node.draw_edge:
-    #         distance_to_node = ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5
+        if draw_edge:
+            edge__ = tree.edges[-1]
+            draw_edge = False
+            edge__.parent.draw_edge = False
+            edge__.held = False
+            edge__.child = tree.nodes[-1]
+            edge__.update_pos()
+            if edge__.label == '':
+                edge__.label = edge__.parent.label + '>' + edge__.child.label
+            # Update nodes data
+            edge__.parent.children.append(edge__.child)
+            edge__.child.parents.append(edge__.parent)
 
     if event_type == 'down':
         # Left click
@@ -1159,17 +1173,6 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 if not node_click:
                     if draw_edge:
                         create_new_node(held=False, update_menu=False)
-                        edge = tree.edges[-1]
-                        draw_edge = False
-                        edge.parent.draw_edge = False
-                        edge.held = False
-                        edge.child = tree.nodes[-1]
-                        edge.update_pos()
-                        if edge.label == '':
-                            edge.label = edge.parent.label + '>' + edge.child.label
-                        # Update nodes data
-                        edge.parent.children.append(edge.child)
-                        edge.child.parents.append(edge.parent)
     elif event_type == 'up':
         # Left unclick
         if not mouse_buttons[0]:
