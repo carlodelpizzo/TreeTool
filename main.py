@@ -996,9 +996,10 @@ class SelectionBox:
             self.y_range = (self.end_y, self.y)
 
 
-# Undo function, Zoom function (deceptively hard), auto-sort feature, color palette choices
+# Zoom function (deceptively hard), auto-sort feature, color palette choices
 # Fix menu generally, textbox scrolling. Tab to select children, shift tab to jump to parent
 # Save/load to file, reorganize everything, add copy paste, ability to move textbox cursor
+# Don't allow undo to make duplicate edges, add view_pos
 
 
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
