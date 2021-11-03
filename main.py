@@ -296,7 +296,7 @@ class Tree:
         global loaded_file
 
         if loaded_file == '':
-            save_file = open('tree_' + ran_name + '.txt', 'w', errors='ignore')
+            save_file = open(ran_name + '.tree', 'w', errors='ignore')
             text = '**NODES**\n'
             for item in self.nodes:
                 text += str(item.id) + '\n' + str(item.label) + '\n' + str(item.x) + '\n' + str(item.y) + '\n' +\
@@ -338,9 +338,12 @@ class Tree:
         global loaded_name
 
         if not from_file:
-            if os.path.isfile('tree_load.txt'):
-                self.save_tree()
+            if os.path.isfile('load.tree'):
+                if len(self.nodes) > 0:
+                    self.save_tree()
 
+                loaded_file = ''
+                loaded_name = ''
                 old_ran = ran_name
                 ran_name = ''
                 for _ in range(0, 10):
@@ -360,7 +363,7 @@ class Tree:
                 self.view_offset = (0, 0)
                 self.selection_box = None
 
-                save_file = open('tree_load.txt', 'r', errors='ignore')
+                save_file = open('load.tree', 'r', errors='ignore')
                 load_nodes = False
                 load_edges = False
                 nodes = []
@@ -425,12 +428,12 @@ class Tree:
                                            target=target, label=edge[2]))
                 save_file.close()
         else:
-            if os.path.isfile(file_path) and os.path.splitext(file_path)[1] == '.txt':
+            if os.path.isfile(file_path) and os.path.splitext(file_path)[1] == '.tree':
                 if len(self.nodes) != 0:
                     self.save_tree()
 
                 loaded_file = file_path
-                loaded_name = os.path.basename(file_path)[:-4]
+                loaded_name = os.path.basename(file_path)[:-len('.tree')]
 
                 tree.menu.resize()
 
@@ -758,16 +761,16 @@ class Menu:
         self.fixtures.append(Label(0, 0, 'Or Drag/Drop Tree File', font_size=15))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
-        self.fixtures.append(Label(0, 0, 'tree_load.txt', font_size=15, color=blue))
+        self.fixtures.append(Label(0, 0, 'load.tree', font_size=15, color=blue))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
         self.fixtures.append(Label(0, 0, 'To load, name file as:', font_size=15))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
-        self.fixtures.append(Label(0, 0, 'tree_' + file_name + '.txt', font_size=15, color=blue))
+        self.fixtures.append(Label(0, 0, file_name + '.tree', font_size=15, color=blue))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
-        self.fixtures.append(Label(0, 0, 'Save will save as:', font_size=15))
+        self.fixtures.append(Label(0, 0, 'Save will save file as:', font_size=15))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
 
@@ -1327,10 +1330,10 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
 def bullshit_fix():
     if loaded_file == '' and ran_name not in tree.menu.fixtures[5].label_text:
-        tree.menu.fixtures[5].update_label('tree_' + ran_name + '.txt')
+        tree.menu.fixtures[5].update_label(ran_name + '.tree')
         tree.menu.resize()
     elif loaded_name != '' and loaded_name not in tree.menu.fixtures[5].label_text:
-        tree.menu.fixtures[5].update_label(loaded_name + '.txt')
+        tree.menu.fixtures[5].update_label(loaded_name + '.tree')
         tree.menu.resize()
 
 
