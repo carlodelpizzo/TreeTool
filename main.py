@@ -74,6 +74,8 @@ class Node:
         self.held_offset = [0, 0]
         self.draw_edge = False
         self.type = 'node'
+        self.deleted = False
+
         if parents is None:
             self.parents = []
         else:
@@ -137,6 +139,7 @@ class Edge:
         self.parent = source
         self.child = target
         self.type = 'edge'
+        self.deleted = False
 
         # for IDE
         if self.x is None:
@@ -1340,7 +1343,60 @@ def bullshit_fix():
         tree.menu.resize()
 
 
+def delete_object(deleted_object=None, undo=False):
+    global deleted_objects
+    global tree
+
+    if not undo and deleted_object is not None:
+        deleted_object.deleted = True
+        deleted_object.sourced = False
+        deleted_object.selected = False
+        deleted_object.held = False
+        deleted_objects.append(deleted_object)
+
+        if deleted_object.type == 'node':
+            if len(deleted_object.parents) != 0 or len(deleted_object.children) != 0:
+                pop_list = []
+                for edge_ in reversed(tree.edges):
+                    if edge_.parent == deleted_object or edge_.child == deleted_object:
+                        pop_list.append(tree.edges.index(edge_))
+                for index_ in pop_list:
+                    delete_object(deleted_object=tree.edges[index_])
+            tree.nodes.pop(tree.nodes.index(deleted_object))
+        elif deleted_object.type == 'edge':
+            # For IDE
+            if delete_timer < 0:
+                edge_ = Edge(0, 0, 0, 0, None)
+            else:
+                edge_ = deleted_object
+
+            edge_.parent.children.pop(edge_.parent.children.index(edge_.child))
+            edge_.child.parents.pop(edge_.child.parents.index(edge_.parent))
+            tree.edges.pop(tree.edges.index(deleted_object))
+
+        if tree.menu.source is not None and tree.menu.source == deleted_object:
+            tree.menu.update_source(None)
+    elif undo and len(deleted_objects) > 0:
+        edges_to_restore = []
+        for i in reversed(range(len(deleted_objects))):
+            if deleted_objects[i].type == 'edge':
+                edges_to_restore.append(deleted_objects[i])
+            elif deleted_objects[i].type == 'node':
+                deleted_objects[i].deleted = False
+                tree.nodes.append(deleted_objects[i])
+                deleted_objects.pop(deleted_objects.index(deleted_objects[i]))
+                if len(edges_to_restore) > 0:
+                    for edge_ in edges_to_restore:
+                        edge_.deleted = False
+                        edge_.parent.children.append(edge_.child)
+                        edge_.child.parents.append(edge_.parent)
+                        tree.edges.append(edge_)
+                        deleted_objects.pop(deleted_objects.index(edge_))
+                break
+
+
 tree = Tree()
+deleted_objects = []
 
 # Maybe label these
 loaded_file = ''
@@ -1394,6 +1450,9 @@ while running:
                         node_.y += tree.view_offset[1]
                     tree.view_offset = (0, 0)
 
+                elif keys[K_z]:
+                    delete_object(undo=True)
+
             # Delete selected item
             elif keys[K_DELETE]:
                 if not delete_item:
@@ -1401,33 +1460,7 @@ while running:
                     delete_timer = int(frame_rate / 2)
                 elif delete_timer > 0:
                     if tree.menu.source is not None:
-                        if tree.menu.source.type == 'node':
-                            if len(tree.menu.source.parents) != 0:
-                                for parent_ in tree.menu.source.parents:
-                                    parent_.children.pop(parent_.children.index(tree.menu.source))
-                            if len(tree.menu.source.children) != 0:
-                                for child_ in tree.menu.source.children:
-                                    child_.parents.pop(child_.parents.index(tree.menu.source))
-                            if len(tree.menu.source.parents) != 0 or len(tree.menu.source.children) != 0:
-                                pop_list = []
-                                for edge_ in reversed(tree.edges):
-                                    if edge_.parent == tree.menu.source or edge_.child == tree.menu.source:
-                                        pop_list.append(tree.edges.index(edge_))
-                                for index_ in pop_list:
-                                    tree.edges.pop(index_)
-                            tree.nodes.pop(tree.nodes.index(tree.menu.source))
-                        elif tree.menu.source.type == 'edge':
-                            # For IDE
-                            if delete_timer < 0:
-                                edge_ = Edge(0, 0, 0, 0, None)
-                            else:
-                                edge_ = tree.menu.source
-
-                            edge_.parent.children.pop(edge_.parent.children.index(edge_.child))
-                            edge_.child.parents.pop(edge_.child.parents.index(edge_.parent))
-                            tree.edges.pop(tree.edges.index(edge_))
-
-                    tree.menu.update_source(None)
+                        delete_object(tree.menu.source)
                     delete_item = False
 
             else:
