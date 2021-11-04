@@ -61,10 +61,10 @@ class Node:
                 ran += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
             node_id = ran
         self.id = node_id
-        self.x = x_pos
-        self.y = y_pos
-        self.view_x = self.x
-        self.view_y = self.y
+        self.x = x_pos + tree.view_offset[0]
+        self.y = y_pos + tree.view_offset[1]
+        self.view_x = x_pos
+        self.view_y = y_pos
         self.radius = radius
         self.label = label
         self.color = blue
@@ -88,32 +88,31 @@ class Node:
             self.children = children
 
     def update_pos(self, pos: tuple):
-        for node in tree.nodes:
-            if node != self:
-                if pos[0] - self.radius <= node.x <= pos[0] + self.radius:
-                    if pos[1] - self.radius <= node.y <= pos[1] + self.radius:
-                        return
         if self.held:
-            self.x = pos[0] + self.held_offset[0]
-            self.y = pos[1] + self.held_offset[1]
+            self.x = pos[0] + self.held_offset[0] + tree.view_offset[0]
+            self.y = pos[1] + self.held_offset[1] + tree.view_offset[1]
         else:
-            self.x = pos[0]
-            self.y = pos[1]
+            self.view_x = pos[0]
+            self.view_y = pos[1]
 
-    def draw(self, offset=(0, 0)):
+    def refresh_view_pos(self):
+        self.view_x = self.x - tree.view_offset[0]
+        self.view_y = self.y - tree.view_offset[1]
+
+    def draw(self):
         if self.sourced:
-            pygame.draw.circle(screen, red, (self.x - offset[0], self.y - offset[1]), self.radius)
-            pygame.draw.circle(screen, self.color, (self.x - offset[0], self.y - offset[1]), self.radius - 2)
+            pygame.draw.circle(screen, red, (self.view_x, self.view_y), self.radius)
+            pygame.draw.circle(screen, self.color, (self.view_x, self.view_y), self.radius - 2)
         else:
-            pygame.draw.circle(screen, black, (self.x - offset[0], self.y - offset[1]), self.radius)
-            pygame.draw.circle(screen, self.color, (self.x - offset[0], self.y - offset[1]), self.radius - 2)
+            pygame.draw.circle(screen, black, (self.view_x, self.view_y), self.radius)
+            pygame.draw.circle(screen, self.color, (self.view_x, self.view_y), self.radius - 2)
         if self.show_label:
             label = self.font.render(self.label, True, self.color)
             label_x = int(label.get_rect().width / 2)
-            screen.blit(label, (self.x - label_x - offset[0], self.y - self.radius - 25 - offset[1]))
+            screen.blit(label, (self.view_x - label_x, self.view_y - self.radius - 25))
 
         if self.selected:
-            pygame.draw.circle(screen, red, (self.x - offset[0], self.y - offset[1]), int(self.radius / 2))
+            pygame.draw.circle(screen, red, (self.view_x, self.view_y), int(self.radius / 2))
 
 
 class Edge:
@@ -189,11 +188,11 @@ class Edge:
     def update_pos(self, pos=None):
         if pos is None:
             if self.parent is not None:
-                self.x = self.parent.x
-                self.y = self.parent.y
+                self.x = self.parent.view_x
+                self.y = self.parent.view_y
             if self.child is not None:
-                self.end_x = self.child.x
-                self.end_y = self.child.y
+                self.end_x = self.child.view_x
+                self.end_y = self.child.view_y
         else:
             self.end_x = pos[0]
             self.end_y = pos[1]
@@ -227,28 +226,15 @@ class Tree:
 
         screen.fill(bg_color)
 
-        if not view_drag:
-            for edge in self.edges:
-                # Relocate pos update function
-                edge.update_pos()
-                edge.draw()
-            for node in self.nodes:
-                node.draw()
-            if self.selection_box is not None:
-                self.selection_box.draw()
-            for edge in self.edges:
-                edge.draw_label()
-        else:
-            for edge in self.edges:
-                # Relocate pos update function
-                edge.update_pos()
-                edge.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
-            for node in self.nodes:
-                node.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
-            if self.selection_box is not None:
-                self.selection_box.draw(offset=(view_drag_temp[0], view_drag_temp[1]))
-            for edge in self.edges:
-                edge.draw_label(offset=(view_drag_temp[0], view_drag_temp[1]))
+        for edge in self.edges:
+            edge.update_pos()
+            edge.draw()
+        for node in self.nodes:
+            node.draw()
+        if self.selection_box is not None:
+            self.selection_box.draw()
+        for edge in self.edges:
+            edge.draw_label()
 
         if len(tree.nodes) < 3:
             if len(tree.nodes) == 0:
@@ -909,8 +895,10 @@ class SelectionBox:
         self.x_range = (self.x, self.x)
         self.y_range = (self.y, self.y)
 
-    def draw(self, offset=(0, 0)):
-        pygame.draw.rect(screen, self.color, (self.x - offset[0], self.y - offset[1],
+    def draw(self):
+        ox = view_drag_temp[0]
+        oy = view_drag_temp[1]
+        pygame.draw.rect(screen, self.color, (self.x - ox, self.y - oy,
                                               self.end_x - self.x, self.end_y - self.y),
                          width=self.width)
 
@@ -1076,10 +1064,10 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     node_click = False
                     # Left click node
                     for node in tree.nodes:
-                        if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
+                        if ((node.view_x - mouse_pos[0])**2 + (node.view_y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                             if not draw_edge:
                                 node_click = True
-                                node.held_offset = [node.x - mouse_pos[0], node.y - mouse_pos[1]]
+                                node.held_offset = [node.view_x - mouse_pos[0], node.view_y - mouse_pos[1]]
                                 node.held = True
                                 tree.menu.update_source(node)
 
@@ -1142,7 +1130,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 node_click = False
                 # Right click node
                 for node in tree.nodes:
-                    if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
+                    if ((node.view_x - mouse_pos[0])**2 + (node.view_y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                         node_click = True
                         if not draw_edge:
                             if not node.draw_edge:
@@ -1175,7 +1163,8 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                         # Left unclick node
                         node_click = False
                         for node in tree.nodes:
-                            if ((node.x - mouse_pos[0]) ** 2 + (node.y - mouse_pos[1]) ** 2) ** 0.5 <= node.radius + 1:
+                            if ((node.view_x - mouse_pos[0]) ** 2 + (node.view_y - mouse_pos[1]) ** 2) ** 0.5 <=\
+                                    node.radius + 1:
                                 tree.menu.update_source(node)
                                 node_click = True
                                 break
@@ -1190,12 +1179,6 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                         tree.selection_box = None
                         box_select = False
 
-                # Update node pos from view drag
-                for node in tree.nodes:
-                    node.x -= view_drag_temp[0]
-                    node.y -= view_drag_temp[1]
-                for edge in tree.edges:
-                    edge.update_pos()
                 if tree.selection_box is not None and tree.selection_box.selected:
                     tree.selection_box.held = False
                     tree.selection_box.x -= view_drag_temp[0]
@@ -1209,8 +1192,8 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 if tree.selection_box is not None and not tree.selection_box.selected:
                     selection = []
                     for node in tree.nodes:
-                        if tree.selection_box.x_range[0] <= node.x + node.radius and \
-                                node.x - node.radius <= tree.selection_box.x_range[1]:
+                        if tree.selection_box.x_range[0] <= node.view_x + node.radius and \
+                                node.view_x - node.radius <= tree.selection_box.x_range[1]:
                             if tree.selection_box.y_range[0] <= node.y + node.radius and \
                                     node.y - node.radius <= tree.selection_box.y_range[1]:
                                 selection.append(node)
@@ -1238,7 +1221,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             if right_mouse_held:
                 if mouse_pos[0] > tree.menu.width:
                     for node in tree.nodes:
-                        if ((node.x - mouse_pos[0])**2 + (node.y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
+                        if ((node.view_x - mouse_pos[0])**2 + (node.view_y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                             if draw_edge and not node.draw_edge:
                                 edge = tree.edges[-1]
                                 if node not in edge.parent.children and edge.parent is not node:
@@ -1287,15 +1270,18 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             node.update_pos(mouse_pos)
         elif node.draw_edge:
             if not draw_edge:
-                distance_to_node = ((node.x - mouse_pos[0]) ** 2 + (node.y - mouse_pos[1]) ** 2) ** 0.5
+                distance_to_node = ((node.view_x - mouse_pos[0]) ** 2 + (node.view_y - mouse_pos[1]) ** 2) ** 0.5
                 if abs(distance_to_node) >= node.radius + 5:
-                    tree.edges.append(Edge(node.x - tree.view_offset[0], node.y - tree.view_offset[1], 0, 0, node))
+                    tree.edges.append(Edge(node.view_x - tree.view_offset[0], node.view_y - tree.view_offset[1],
+                                           0, 0, node))
                     draw_edge = True
             else:
-                distance_to_node = ((node.x - mouse_pos[0]) ** 2 + (node.y - mouse_pos[1]) ** 2) ** 0.5
+                distance_to_node = ((node.view_x - mouse_pos[0]) ** 2 + (node.view_y - mouse_pos[1]) ** 2) ** 0.5
                 if abs(distance_to_node) <= node.radius + 1:
                     draw_edge = False
                     tree.edges.pop()
+
+        node.refresh_view_pos()
     if draw_edge and not view_drag:
         tree.edges[-1].update_pos(mouse_pos)
 
@@ -1452,8 +1438,8 @@ while running:
                 # Return to original view position
                 elif keys[K_o]:
                     for node_ in tree.nodes:
-                        node_.x += tree.view_offset[0]
-                        node_.y += tree.view_offset[1]
+                        node_.view_x = node_.x
+                        node_.view_y = node_.y
                     tree.view_offset = (0, 0)
 
                 elif keys[K_z]:
