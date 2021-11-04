@@ -1312,11 +1312,12 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
 
 def bullshit_fix():
-    if loaded_file == '' and ran_name not in tree.menu.fixtures[2].label_text:
-        tree.menu.fixtures[2].update_label(ran_name + '.tree')
+    index_of_bullshit = 2
+    if loaded_file == '' and ran_name not in tree.menu.fixtures[index_of_bullshit].label_text:
+        tree.menu.fixtures[index_of_bullshit].update_label(ran_name + '.tree')
         tree.menu.resize()
-    elif loaded_name != '' and loaded_name not in tree.menu.fixtures[2].label_text:
-        tree.menu.fixtures[2].update_label(loaded_name + '.tree')
+    elif loaded_name != '' and loaded_name not in tree.menu.fixtures[index_of_bullshit].label_text:
+        tree.menu.fixtures[index_of_bullshit].update_label(loaded_name + '.tree')
         tree.menu.resize()
 
 
