@@ -29,7 +29,7 @@ green = [0, 215, 100]
 blue = [0, 200, 255]
 
 # Font
-default_font = 'Georgia'
+default_font = 'cmunssdc.ttf'
 
 # Static variables
 bg_color = dark_grey
@@ -66,7 +66,7 @@ class Node:
         self.radius = radius
         self.label = label
         self.color = blue
-        self.font = pygame.font.SysFont(font, font_size)
+        self.font = pygame.font.Font(font, font_size)
         self.show_label = True
         self.held = held
         self.selected = False
@@ -124,7 +124,7 @@ class Edge:
         self.label = label
         self.show_label = True
         self.color = black
-        self.font = pygame.font.SysFont(font, font_size)
+        self.font = pygame.font.Font(font, font_size)
         self.font_size = font_size
         self.x = start_x
         self.y = start_y
@@ -145,6 +145,7 @@ class Edge:
         if self.x is None:
             self.parent = Node(0, 0)
             self.child = Node(0, 0)
+        # /For IDE
 
     def draw(self, offset=(0, 0)):
         # Draw line
@@ -216,6 +217,7 @@ class Tree:
         # For IDE
         if self.selection_box is not None:
             self.selection_box = SelectionBox(0, 0)
+        # /For IDE
 
     def draw_screen(self):
         global view_drag_temp
@@ -529,7 +531,7 @@ class Button:
         self.y = y
         self.padding = padding
         self.color = button_color
-        self.font = pygame.font.SysFont(font, font_size)
+        self.font = pygame.font.Font(font, font_size)
         self.label = self.font.render(label, True, font_color)
         self.pressed_label = self.font.render(label, True, blue)
         self.label_width = int(self.label.get_rect().width)
@@ -716,7 +718,7 @@ class Label:
         self.x = x
         self.y = y
         self.color = color
-        self.font = pygame.font.SysFont(font, font_size)
+        self.font = pygame.font.Font(font, font_size)
         self.label_text = label
         self.width = int(self.font.render(self.label_text, True, self.color).get_rect().width)
         self.height = int(self.font.render(self.label_text, True, self.color).get_rect().height)
@@ -739,7 +741,7 @@ class Menu:
         self.source = source
         self.x = x_pos
         self.y = y_pos
-        self.width = 180
+        self.width = 190
         self.height = screen_height
         self.padding = 7
         self.border_width = 2
@@ -751,35 +753,35 @@ class Menu:
             self.source = Node(0, 0)
             self.items.append(Button(0, 0, ''))
             self.items.append(TextBox(0, 0, ''))
+        # /For IDE
 
         if source is None:
             self.items = [Label(self.x + self.padding, self.y + self.padding, 'No Item Selected')]
             self.items[-1].x = self.x + (self.width / 2) - (self.items[-1].width / 2)
 
-        self.fixtures.append(Button(self.x + self.padding, 0, 'Save', action='save'))
-        self.fixtures[-1].y = screen_height - self.fixtures[-1].height - self.padding
-        self.fixtures.append(Button(0, 0, 'Load', action='load'))
-        self.fixtures[-1].x = self.x + self.width - self.fixtures[-1].width - self.padding
-        self.fixtures[-1].y = screen_height - self.fixtures[-1].height - self.padding
-        self.fixtures.append(Label(0, 0, 'Or Drag/Drop Tree File', font_size=15))
+        fixture_font_size = 18
+        self.fixtures.append(Label(0, 0, 'Drag and Drop', font_size=fixture_font_size))
+        self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
+        self.fixtures[-1].y = screen_height - self.padding - self.fixtures[-1].height
+        self.fixtures.append(Label(0, 0, 'To load a .tree file', font_size=fixture_font_size))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
-        self.fixtures.append(Label(0, 0, 'load.tree', font_size=15, color=blue))
+        self.fixtures.append(Label(0, 0, file_name + '.tree', font_size=fixture_font_size, color=blue))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
-        self.fixtures.append(Label(0, 0, 'To load, name file as:', font_size=15))
-        self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
-        self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
-        self.fixtures.append(Label(0, 0, file_name + '.tree', font_size=15, color=blue))
-        self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
-        self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
-        self.fixtures.append(Label(0, 0, 'Save will save file as:', font_size=15))
+        self.fixtures.append(Label(0, 0, 'Ctrl + S to save as:', font_size=fixture_font_size))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
 
         self.background = pygame.Surface((self.width, self.height))
         self.background.fill(dark_grey)
         self.background.set_alpha(230)
+
+        # For IDE
+        if len(self.fixtures) == -420.69:
+            self.fixtures.append(Node(0, 0))
+            self.fixtures.append(Button(0, 0, ''))
+        # /For IDE
 
     def draw(self):
         tree.menu.refresh_data()
@@ -807,10 +809,19 @@ class Menu:
         # For IDE
         if self.x is None:
             source = Node(0, 0)
+        # /For IDE
 
         if source is not None:
+            refresh_data_only = False
             if self.source is None:
                 self.source = source
+            elif source is self.source:
+                self.refresh_data()
+                refresh_data_only = True
+            else:
+                self.source.sourced = False
+
+            if not refresh_data_only:
                 y_offset = 0
                 if source.type == 'node':
                     self.items = [Label(self.x + self.padding, self.y + self.padding, 'Selected Node:')]
@@ -820,41 +831,7 @@ class Menu:
                                               label='Label', text=''))
                     y_offset += self.items[-1].height + self.padding
                     self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
-                                              label='Children', text=''))
-
-                    for item in self.items:
-                        if item.type == 'textbox':
-                            if item.x + item.width + item.label_offset != self.width - self.padding * 2:
-                                item.width += self.width - self.padding * 2 - item.width - item.label_offset
-                                item.min_width = item.width
-
-                elif source.type == 'edge':
-                    self.items = [Label(self.x + self.padding, self.y + self.padding, 'Selected Edge:')]
-                    self.items[-1].x = self.x + (self.width / 2) - (self.items[-1].width / 2)
-                    y_offset += self.items[-1].height + self.padding
-                    self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
-                                              label='Label', text=source.label))
-
-                    for item in self.items:
-                        if item.type == 'textbox':
-                            if item.x + item.width + item.label_offset != self.width - self.padding * 2:
-                                item.width += self.width - self.padding * 2 - item.width - item.label_offset
-                                item.min_width = item.width
-            else:
-                self.source.sourced = False
-                y_offset = 0
-                if source.type == self.source.type:
-                    self.refresh_data()
-
-                elif source.type == 'node':
-                    self.items = [Label(self.x + self.padding, self.y + self.padding, 'Selected Node:')]
-                    self.items[-1].x = self.x + (self.width / 2) - (self.items[-1].width / 2)
-                    y_offset += self.items[-1].height + self.padding
-                    self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
-                                              label='Label', text=''))
-                    y_offset += self.items[-1].height + self.padding
-                    self.items.append(TextBox(self.x + self.padding, self.y + y_offset + self.padding,
-                                              label='Children', text=''))
+                                              label='Children', text='', border_width=0))
 
                     for item in self.items:
                         if item.type == 'textbox':
@@ -875,8 +852,8 @@ class Menu:
                                 item.width += self.width - self.padding * 2 - item.width - item.label_offset
                                 item.min_width = item.width
 
-            self.source = source
-            self.source.sourced = True
+                self.source = source
+                self.source.sourced = True
 
             # Select Label textbox
             for item in self.items:
@@ -902,9 +879,8 @@ class Menu:
 
     def resize(self):
         self.height = screen_height
-        self.fixtures[0].y = screen_height - self.fixtures[0].height - self.padding
-        self.fixtures[1].y = screen_height - self.fixtures[1].height - self.padding
-        for i in range(len(self.fixtures)):
+        self.fixtures[0].y = screen_height - self.padding - self.fixtures[0].height
+        for i in range(1, len(self.fixtures)):
             if self.fixtures[i].type == 'label':
                 self.fixtures[i].x = self.x + (self.width / 2) - (self.fixtures[i].width / 2)
                 self.fixtures[i].y = self.fixtures[i - 1].y - self.padding - self.fixtures[i].height
@@ -996,10 +972,10 @@ class SelectionBox:
             self.y_range = (self.end_y, self.y)
 
 
-# Zoom function (deceptively hard), auto-sort feature, color palette choices
+# Zoom function, auto-sort feature, color palette choices
 # Fix menu generally, textbox scrolling. Tab to select children, shift tab to jump to parent
 # Save/load to file, reorganize everything, add copy paste, ability to move textbox cursor
-# Don't allow undo to make duplicate edges, add view_pos
+# Don't allow undo to make duplicate edges, add view_pos, fix undo bugs, limit label length
 
 
 def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
@@ -1336,11 +1312,11 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
 
 def bullshit_fix():
-    if loaded_file == '' and ran_name not in tree.menu.fixtures[5].label_text:
-        tree.menu.fixtures[5].update_label(ran_name + '.tree')
+    if loaded_file == '' and ran_name not in tree.menu.fixtures[2].label_text:
+        tree.menu.fixtures[2].update_label(ran_name + '.tree')
         tree.menu.resize()
-    elif loaded_name != '' and loaded_name not in tree.menu.fixtures[5].label_text:
-        tree.menu.fixtures[5].update_label(loaded_name + '.tree')
+    elif loaded_name != '' and loaded_name not in tree.menu.fixtures[2].label_text:
+        tree.menu.fixtures[2].update_label(loaded_name + '.tree')
         tree.menu.resize()
 
 
@@ -1370,6 +1346,7 @@ def delete_object(deleted_object=None, undo=False):
             # For IDE
             if delete_timer < 0:
                 edge_ = Edge(0, 0, 0, 0, None)
+                # /For IDE
             else:
                 edge_ = deleted_object
 
