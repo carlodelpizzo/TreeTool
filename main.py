@@ -3,6 +3,8 @@ import random
 import pygame
 from pygame.locals import *
 import os
+import base64
+from Base64Assets import *
 
 
 debug = []
@@ -29,6 +31,10 @@ green = [0, 215, 100]
 blue = [0, 200, 255]
 
 # Font
+if not os.path.isfile('cmunssdc.ttf'):
+    font_file = open('cmunssdc.ttf', 'wb')
+    font_file.write(base64.b64decode(b64_font_file))
+    font_file.close()
 default_font = 'cmunssdc.ttf'
 
 # Static variables
