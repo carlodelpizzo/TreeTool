@@ -63,6 +63,8 @@ class Node:
         self.id = node_id
         self.x = x_pos
         self.y = y_pos
+        self.view_x = self.x
+        self.view_y = self.y
         self.radius = radius
         self.label = label
         self.color = blue
@@ -1100,7 +1102,6 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
                             if rename_this_later:
                                 if view_drag:
-                                    view_drag_temp = tree.view_offset
                                     orig_mouse_pos = mouse_pos
 
                                 # Select Edge
@@ -1189,7 +1190,6 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                         tree.selection_box = None
                         box_select = False
 
-                tree.view_offset = (tree.view_offset[0] + view_drag_temp[0], tree.view_offset[1] + view_drag_temp[1])
                 # Update node pos from view drag
                 for node in tree.nodes:
                     node.x -= view_drag_temp[0]
@@ -1301,7 +1301,11 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
     # View drag
     if view_drag:
-        view_drag_temp = (orig_mouse_pos[0] - mouse_pos[0], orig_mouse_pos[1] - mouse_pos[1])
+        x_diff = (orig_mouse_pos[0] - mouse_pos[0]) - view_drag_temp[0]
+        y_diff = (orig_mouse_pos[1] - mouse_pos[1]) - view_drag_temp[1]
+        if x_diff != 0 or y_diff != 0:
+            tree.view_offset = (tree.view_offset[0] + x_diff, tree.view_offset[1] + y_diff)
+            view_drag_temp = (orig_mouse_pos[0] - mouse_pos[0], orig_mouse_pos[1] - mouse_pos[1])
 
     # Box select
     if tree.selection_box is not None:
@@ -1388,10 +1392,19 @@ def delete_object(deleted_object=None, undo=False):
         tree.selection_box.resize_box()
 
 
+def debugger(variable: str):
+    global debug
+
+    if variable != debug:
+        debug = variable
+        print(debug)
+
+
 tree = Tree()
 deleted_objects = []
 
 # Maybe label these
+debug = ''
 loaded_file = ''
 loaded_name = ''
 delete_item = False
@@ -1412,7 +1425,7 @@ held_key_event = None
 key_hold_counter = 0
 running = True
 while running:
-
+    debugger(str(view_drag_temp) + str(tree.view_offset))
     # Event loop
     for event in pygame.event.get():
         keys = pygame.key.get_pressed()
