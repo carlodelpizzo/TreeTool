@@ -927,7 +927,7 @@ class SelectionBox:
         self.selected = selected
         if selected_object is not None:
             for node in selected_object:
-                node.held_offset = [node.x - hold_offset[0], node.y - hold_offset[1]]
+                node.held_offset = [node.view_x - hold_offset[0], node.view_y - hold_offset[1]]
                 node.selected = True
                 self.selection.append(node)
 
@@ -936,14 +936,14 @@ class SelectionBox:
         y_range = [screen_height, 0]
         if len(self.selection) > 0:
             for node in self.selection:
-                if node.x - node.radius < x_range[0]:
-                    x_range[0] = node.x - node.radius
-                if node.x + node.radius > x_range[1]:
-                    x_range[1] = node.x + node.radius
-                if node.y - node.radius < y_range[0]:
-                    y_range[0] = node.y - node.radius
-                if node.y + node.radius > y_range[1]:
-                    y_range[1] = node.y + node.radius
+                if node.view_x - node.radius < x_range[0]:
+                    x_range[0] = node.view_x - node.radius
+                if node.view_x + node.radius > x_range[1]:
+                    x_range[1] = node.view_x + node.radius
+                if node.view_y - node.radius < y_range[0]:
+                    y_range[0] = node.view_y - node.radius
+                if node.view_y + node.radius > y_range[1]:
+                    y_range[1] = node.view_y + node.radius
         self.x = x_range[0] - self.width * 2
         self.end_x = x_range[1] + self.width * 2
         self.y = y_range[0] - self.width * 2
@@ -1411,7 +1411,7 @@ held_key_event = None
 key_hold_counter = 0
 running = True
 while running:
-    debugger(str(view_drag_temp) + str(tree.view_offset))
+
     # Event loop
     for event in pygame.event.get():
         keys = pygame.key.get_pressed()
@@ -1440,6 +1440,8 @@ while running:
                     for node_ in tree.nodes:
                         node_.view_x = node_.x
                         node_.view_y = node_.y
+                    if tree.selection_box is not None:
+                        tree.selection_box.resize_box()
                     tree.view_offset = (0, 0)
 
                 elif keys[K_z]:
