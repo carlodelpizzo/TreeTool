@@ -968,7 +968,7 @@ class SelectionBox:
             self.y_range = (self.end_y, self.y)
 
 
-# Zoom function, auto-sort feature, color palette choices
+# Zoom function, auto-sort feature, color palette choices, double click to collapse children, select shows path to root
 # Fix menu generally, textbox scrolling. Tab to select children, shift tab to jump to parent
 # Save/load to file, reorganize everything, add copy paste, ability to move textbox cursor
 # Don't allow undo to make duplicate edges, add view_pos, fix undo bugs, limit label length
