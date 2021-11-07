@@ -1200,8 +1200,8 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     for node in tree.nodes:
                         if tree.selection_box.x_range[0] <= node.view_x + node.radius and \
                                 node.view_x - node.radius <= tree.selection_box.x_range[1]:
-                            if tree.selection_box.y_range[0] <= node.y + node.radius and \
-                                    node.y - node.radius <= tree.selection_box.y_range[1]:
+                            if tree.selection_box.y_range[0] <= node.view_y + node.radius and \
+                                    node.view_y - node.radius <= tree.selection_box.y_range[1]:
                                 selection.append(node)
                             elif node is not tree.menu.source:
                                 node.selected = False
