@@ -1148,6 +1148,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 if not node_click:
                     if draw_edge:
                         create_new_node(held=False, update_menu=False)
+
     elif event_type == 'up':
         # Left unclick
         if not mouse_buttons[0]:
@@ -1245,66 +1246,67 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
             right_mouse_held = False
 
-    # Button actions
-    for item in tree.menu.items:
-        if item.type == 'button':
-            if item.run:
-                if item.action == 'node':
-                    create_new_node()
-                item.run = False
-            else:
-                item.mouse_input(mouse_pos, mouse_buttons, '')
-    for fixture in tree.menu.fixtures:
-        if fixture.type == 'button':
-            if fixture.run:
-                if fixture.action == 'save':
-                    tree.save_tree()
-                    fixture.run = False
-                    fixture.pressed = False
-                    fixture.pressed_draw = False
-                elif fixture.action == 'load':
-                    tree.load_tree()
-                    fixture.run = False
-                    fixture.pressed = False
-                    fixture.pressed_draw = False
-            else:
-                fixture.mouse_input(mouse_pos, mouse_buttons, '')
+    elif event_type == '':
+        # Button actions
+        for item in tree.menu.items:
+            if item.type == 'button':
+                if item.run:
+                    if item.action == 'node':
+                        create_new_node()
+                    item.run = False
+                else:
+                    item.mouse_input(mouse_pos, mouse_buttons, '')
+        for fixture in tree.menu.fixtures:
+            if fixture.type == 'button':
+                if fixture.run:
+                    if fixture.action == 'save':
+                        tree.save_tree()
+                        fixture.run = False
+                        fixture.pressed = False
+                        fixture.pressed_draw = False
+                    elif fixture.action == 'load':
+                        tree.load_tree()
+                        fixture.run = False
+                        fixture.pressed = False
+                        fixture.pressed_draw = False
+                else:
+                    fixture.mouse_input(mouse_pos, mouse_buttons, '')
 
-    # Nodes / Edges
-    for node in tree.nodes:
-        if node.held:
-            node.update_pos(mouse_pos)
-        elif node.draw_edge:
-            if not draw_edge:
-                distance_to_node = ((node.view_x - mouse_pos[0]) ** 2 + (node.view_y - mouse_pos[1]) ** 2) ** 0.5
-                if abs(distance_to_node) >= node.radius + 5:
-                    tree.edges.append(Edge(node.view_x - tree.view_offset[0], node.view_y - tree.view_offset[1],
-                                           0, 0, node))
-                    draw_edge = True
-            else:
-                distance_to_node = ((node.view_x - mouse_pos[0]) ** 2 + (node.view_y - mouse_pos[1]) ** 2) ** 0.5
-                if abs(distance_to_node) <= node.radius + 1:
-                    draw_edge = False
-                    tree.edges.pop()
+        # Nodes / Edges
+        for node in tree.nodes:
+            if node.held:
+                node.update_pos(mouse_pos)
+            elif node.draw_edge:
+                if not draw_edge:
+                    distance_to_node = ((node.view_x - mouse_pos[0]) ** 2 + (node.view_y - mouse_pos[1]) ** 2) ** 0.5
+                    if abs(distance_to_node) >= node.radius + 5:
+                        tree.edges.append(Edge(node.view_x - tree.view_offset[0], node.view_y - tree.view_offset[1],
+                                               0, 0, node))
+                        draw_edge = True
+                else:
+                    distance_to_node = ((node.view_x - mouse_pos[0]) ** 2 + (node.view_y - mouse_pos[1]) ** 2) ** 0.5
+                    if abs(distance_to_node) <= node.radius + 1:
+                        draw_edge = False
+                        tree.edges.pop()
 
-        node.refresh_view_pos()
-    if draw_edge and not view_drag:
-        tree.edges[-1].update_pos(mouse_pos)
+            node.refresh_view_pos()
+        if draw_edge and not view_drag:
+            tree.edges[-1].update_pos(mouse_pos)
 
-    # View drag
-    if view_drag:
-        x_diff = (orig_mouse_pos[0] - mouse_pos[0]) - view_drag_temp[0]
-        y_diff = (orig_mouse_pos[1] - mouse_pos[1]) - view_drag_temp[1]
-        if x_diff != 0 or y_diff != 0:
-            tree.view_offset = (tree.view_offset[0] + x_diff, tree.view_offset[1] + y_diff)
-            view_drag_temp = (orig_mouse_pos[0] - mouse_pos[0], orig_mouse_pos[1] - mouse_pos[1])
+        # View drag
+        if view_drag:
+            x_diff = (orig_mouse_pos[0] - mouse_pos[0]) - view_drag_temp[0]
+            y_diff = (orig_mouse_pos[1] - mouse_pos[1]) - view_drag_temp[1]
+            if x_diff != 0 or y_diff != 0:
+                tree.view_offset = (tree.view_offset[0] + x_diff, tree.view_offset[1] + y_diff)
+                view_drag_temp = (orig_mouse_pos[0] - mouse_pos[0], orig_mouse_pos[1] - mouse_pos[1])
 
-    # Box select
-    if tree.selection_box is not None:
-        if not tree.selection_box.selected:
-            tree.selection_box.update_end_pos(mouse_pos)
-        elif tree.selection_box.held:
-            tree.selection_box.update_pos(mouse_pos)
+        # Box select
+        if tree.selection_box is not None:
+            if not tree.selection_box.selected:
+                tree.selection_box.update_end_pos(mouse_pos)
+            elif tree.selection_box.held:
+                tree.selection_box.update_pos(mouse_pos)
 
 
 def bullshit_fix():
@@ -1415,6 +1417,8 @@ draw_edge = False
 held_key = ''
 held_key_event = None
 key_hold_counter = 0
+scroll_x = 0
+scroll_y = 0
 running = True
 while running:
 
@@ -1512,10 +1516,14 @@ while running:
 
         # Mousewheel
         elif event.type == MOUSEWHEEL:
+            scroll_boost = 4
             if not event.flipped:
-                pass
+                scroll_y += event.y * scroll_boost
+                scroll_x += -event.x * scroll_boost
             else:
-                pass
+                scroll_y += -event.y * scroll_boost
+                scroll_x += -event.x * scroll_boost
+            tree.view_offset = (tree.view_offset[0] + scroll_x, tree.view_offset[1] + scroll_y)
 
         # Resize
         elif event.type == VIDEORESIZE:
@@ -1558,6 +1566,12 @@ while running:
         double_click_timer -= 1
         if double_click_timer == 0:
             double_click = False
+
+    # Scroll momentum
+    if scroll_x != 0:
+        scroll_x = int(scroll_x / 2)
+    if scroll_y != 0:
+        scroll_y = int(scroll_y / 2)
 
     bullshit_fix()
     tree.draw_screen()
