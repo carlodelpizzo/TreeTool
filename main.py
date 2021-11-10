@@ -23,12 +23,12 @@ pygame.display.set_caption('Decision Tree Tool')
 # Colors
 black = [0, 0, 0]
 white = [255, 255, 255]
-light_grey = [200, 200, 200]
-dark_grey = [75, 75, 75]
-grey = [128, 128, 128]
+grey = [100, 100, 100]
+light_grey = [190, 190, 190]
+light_black = [25, 25, 25]
 red = [220, 30, 0]
 green = [0, 215, 100]
-blue = [0, 200, 255]
+blue = [0, 150, 190]
 
 # Font
 if not os.path.isfile('cmunssdc.ttf'):
@@ -38,7 +38,7 @@ if not os.path.isfile('cmunssdc.ttf'):
 default_font = 'cmunssdc.ttf'
 
 # Static variables
-bg_color = dark_grey
+bg_color = light_black
 integers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
            'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
@@ -130,7 +130,7 @@ class Edge:
         self.id = ran
         self.label = label
         self.show_label = True
-        self.color = black
+        self.color = grey
         self.font = pygame.font.Font(font, font_size)
         self.font_size = font_size
         self.x = start_x
@@ -186,7 +186,7 @@ class Edge:
     def draw_label(self, offset=(0, 0)):
         # Draw label
         if self.show_label:
-            label = self.font.render(self.label, True, white)
+            label = self.font.render(self.label, True, light_grey)
             label_x = int(label.get_rect().width / 2)
             screen.blit(label, (self.center[0] - label_x - offset[0],
                                 self.center[1] - label.get_rect().height - offset[1]))
@@ -517,9 +517,9 @@ class Button:
         else:
             self.action = action
         if border_color is None:
-            border_color = light_grey
+            border_color = grey
         if font_color is None:
-            font_color = light_grey
+            font_color = grey
         self.type = 'button'
         self.x = x
         self.y = y
@@ -609,7 +609,7 @@ class CheckBox:
     def __init__(self, x: int, y: int, label: str, action: str, padding=2, border_width=2, color=None,
                  font=default_font, font_size=15):
         if color is None:
-            color = light_grey
+            color = grey
         self.type = 'checkbox'
         self.x = x
         self.y = y
@@ -658,7 +658,7 @@ class CheckBox:
 class TextBox:
     def __init__(self, x_pos, y_pos, label='', text='', padding=4, border_width=2, selected=False, clear_on_init=False):
         self.type = 'textbox'
-        self.color = light_grey
+        self.color = grey
         self.bg_color = bg_color
         self.border_color = self.color
         self.border_width = border_width
@@ -757,7 +757,7 @@ class TextBox:
 class Label:
     def __init__(self, x: int, y: int, label: str, color=None, font=default_font, font_size=20):
         if color is None:
-            color = light_grey
+            color = grey
         self.type = 'label'
         self.x = x
         self.y = y
@@ -822,7 +822,7 @@ class Menu:
         self.fixtures[-1].x = self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
 
         self.background = pygame.Surface((self.width, self.height))
-        self.background.fill(dark_grey)
+        self.background.fill(light_black)
         self.background.set_alpha(230)
 
         # For IDE
@@ -843,15 +843,15 @@ class Menu:
             fixture.draw()
 
         # Left edge
-        pygame.draw.rect(screen, light_grey, (self.x, self.y, self.border_width, self.height))
+        pygame.draw.rect(screen, grey, (self.x, self.y, self.border_width, self.height))
         # Top edge
-        pygame.draw.rect(screen, light_grey, (self.x, self.y, self.width, self.border_width))
+        pygame.draw.rect(screen, grey, (self.x, self.y, self.width, self.border_width))
         # Bottom edge
-        pygame.draw.rect(screen, light_grey, (self.x, self.y + self.height - self.border_width, self.width,
-                                              self.border_width))
+        pygame.draw.rect(screen, grey, (self.x, self.y + self.height - self.border_width, self.width,
+                                        self.border_width))
         # Right edge
-        pygame.draw.rect(screen, light_grey, (self.x + self.width - self.border_width,
-                                              self.y, self.border_width, self.height))
+        pygame.draw.rect(screen, grey, (self.x + self.width - self.border_width,
+                                        self.y, self.border_width, self.height))
 
     def update_source(self, source: object):
         # For IDE
@@ -933,8 +933,10 @@ class Menu:
                 self.fixtures[i].x = self.x + (self.width / 2) - (self.fixtures[i].width / 2)
                 self.fixtures[i].y = self.fixtures[i - 1].y - self.padding - self.fixtures[i].height
 
+        self.fixtures[-1].y = self.fixtures[-2].y - (self.fixtures[-1].height + self.padding)
+
         self.background = pygame.Surface((self.width, self.height))
-        self.background.fill(dark_grey)
+        self.background.fill(light_black)
         self.background.set_alpha(230)
 
 
