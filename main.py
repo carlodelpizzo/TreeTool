@@ -605,6 +605,56 @@ class Button:
         self.y = pos[1]
 
 
+class CheckBox:
+    def __init__(self, x: int, y: int, label: str, action: str, padding=2, border_width=2, color=None,
+                 font=default_font, font_size=15):
+        if color is None:
+            color = light_grey
+        self.type = 'checkbox'
+        self.x = x
+        self.y = y
+        self.padding = padding
+        self.color = color
+        self.font = pygame.font.Font(font, font_size)
+        self.label_text = label
+        self.label = self.font.render(label, True, self.color)
+        self.label_width = int(self.label.get_rect().width)
+        self.label_height = int(self.label.get_rect().height)
+        self.width = self.label_width + self.padding + self.label_height
+        self.height = self.label_height
+        self.border_width = border_width
+        self.selected = False
+        self.action = action
+
+    def draw(self):
+        screen.blit(self.label, (self.x + self.padding + self.height, self.y))
+
+        # Left edge
+        pygame.draw.rect(screen, self.color, (self.x, self.y,
+                                              self.border_width, self.height - self.padding))
+        # Top edge
+        pygame.draw.rect(screen, self.color, (self.x, self.y,
+                                              self.height - self.padding, self.border_width))
+        # Right edge
+        pygame.draw.rect(screen, self.color, (self.x + self.height - self.border_width - self.padding,
+                                              self.y, self.border_width, self.height - self.padding))
+        # Bottom edge
+        pygame.draw.rect(screen, self.color, (self.x, self.y + self.height - self.border_width - self.padding,
+                                              self.height - self.padding, self.border_width))
+        if self.selected:
+            pygame.draw.circle(screen, red, (int(self.x + (self.height / 2)), int(self.y + (self.height / 2))), 5)
+
+    def check_collide(self, pos: tuple):
+        if self.x <= pos[0] <= self.x + self.height:
+            if self.y <= pos[1] <= self.y + self.height:
+                return True
+        return False
+
+    def update_pos(self, pos: tuple):
+        self.x = pos[0]
+        self.y = pos[1]
+
+
 class TextBox:
     def __init__(self, x_pos, y_pos, label='', text='', padding=4, border_width=2, selected=False, clear_on_init=False):
         self.type = 'textbox'
@@ -766,6 +816,10 @@ class Menu:
         self.fixtures.append(Label(0, 0, 'Ctrl + S to save as:', font_size=fixture_font_size))
         self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
         self.fixtures[-1].y = self.fixtures[-2].y - self.padding - self.fixtures[-1].height
+
+        self.fixtures.append(CheckBox(self.x, self.fixtures[-1].y, 'Alternate Labels', 'label alt'))
+        self.fixtures[-1].y -= (self.fixtures[-1].height + self.padding)
+        self.fixtures[-1].x = self.fixtures[-1].x = self.x + (self.width / 2) - (self.fixtures[-1].width / 2)
 
         self.background = pygame.Surface((self.width, self.height))
         self.background.fill(dark_grey)
@@ -986,44 +1040,67 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global double_click_timer
     global box_select
     global allow_box_select
+    global label_alt
 
     def create_new_node(held=True, update_menu=True):
         global auto_name
         global draw_edge
+        global label_alt
 
-        if auto_name == '':
-            auto_name = 'A'
-        elif len(auto_name) == 1 and auto_name != 'Z':
-            auto_name = capital_letters[capital_letters.index(auto_name) + 1]
-        elif len(auto_name) == 1 and auto_name == 'Z':
-            auto_name = 'AA'
-        else:
-            index = 0
-            for i in reversed(range(len(auto_name))):
-                index += 1
-                if auto_name[i] == 'Z':
-                    if i == 0:
-                        length = len(auto_name)
-                        auto_name = ''
-                        for _ in range(0, length + 1):
+        if not label_alt:
+            if auto_name == '':
+                auto_name = 'A'
+            elif len(auto_name) == 1 and auto_name != 'Z':
+                auto_name = capital_letters[capital_letters.index(auto_name) + 1]
+            elif len(auto_name) == 1 and auto_name == 'Z':
+                auto_name = 'AA'
+            else:
+                index = 0
+                for i in reversed(range(len(auto_name))):
+                    index += 1
+                    if auto_name[i] == 'Z':
+                        if i == 0:
+                            length = len(auto_name)
+                            auto_name = ''
+                            for _ in range(0, length + 1):
+                                auto_name += 'A'
+                    else:
+                        auto_name = auto_name[:i] + capital_letters[capital_letters.index(auto_name[i]) + 1]
+                        for _ in range(0, index - 1):
                             auto_name += 'A'
-                else:
-                    auto_name = auto_name[:i] + capital_letters[capital_letters.index(auto_name[i]) + 1]
-                    for _ in range(0, index - 1):
-                        auto_name += 'A'
-                    break
+                        break
 
-        for node__ in tree.nodes:
-            if auto_name == node__.label:
-                create_new_node()
-                return
+            for node__ in tree.nodes:
+                if auto_name == node__.label:
+                    create_new_node()
+                    return
 
-        # Why do I need to do this draw_edge check??
-        if not draw_edge:
-            tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
-                                   held=held, label=auto_name))
+            # Why do I need to do this draw_edge check??
+            if not draw_edge:
+                tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
+                                       held=held, label=auto_name))
+            else:
+                tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label=auto_name))
         else:
-            tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label=auto_name))
+            if tree.menu.source is not None and tree.menu.source.type == 'node':
+                if tree.menu.source.label == 'I':
+                    if not draw_edge:
+                        tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
+                                               held=held, label='II'))
+                    else:
+                        tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='II'))
+                else:
+                    if not draw_edge:
+                        tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
+                                               held=held, label='I'))
+                    else:
+                        tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='I'))
+            else:
+                if not draw_edge:
+                    tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
+                                           held=held, label='I'))
+                else:
+                    tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='I'))
 
         if update_menu:
             tree.menu.update_source(tree.nodes[-1])
@@ -1137,6 +1214,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 # Right click node
                 for node in tree.nodes:
                     if ((node.view_x - mouse_pos[0])**2 + (node.view_y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
+                        tree.menu.update_source(node)
                         node_click = True
                         if not draw_edge:
                             if not node.draw_edge:
@@ -1162,6 +1240,13 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                 for fixture in tree.menu.fixtures:
                     if fixture.type == 'button':
                         fixture.mouse_input(mouse_pos, mouse_buttons, 'up')
+
+                    elif fixture.type == 'checkbox':
+                        if fixture.check_collide(mouse_pos):
+                            if not fixture.selected:
+                                fixture.selected = True
+                            else:
+                                fixture.selected = False
 
                 if tree.selection_box is not None and \
                         view_drag_temp == (0, 0) and len(tree.selection_box.selection) > 0:
@@ -1271,6 +1356,12 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                         fixture.pressed_draw = False
                 else:
                     fixture.mouse_input(mouse_pos, mouse_buttons, '')
+            elif fixture.type == 'checkbox':
+                if fixture.action == 'label alt':
+                    if fixture.selected:
+                        label_alt = True
+                    else:
+                        label_alt = False
 
         # Nodes / Edges
         for node in tree.nodes:
@@ -1419,6 +1510,7 @@ held_key_event = None
 key_hold_counter = 0
 scroll_x = 0
 scroll_y = 0
+label_alt = False
 running = True
 while running:
 
