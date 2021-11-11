@@ -22,13 +22,13 @@ pygame.display.set_caption('Decision Tree Tool')
 
 # Colors
 black = [0, 0, 0]
+light_black = [25, 25, 25]
 white = [255, 255, 255]
 grey = [100, 100, 100]
-light_grey = [190, 190, 190]
-light_black = [25, 25, 25]
-red = [220, 30, 0]
+light_grey = [205, 205, 205]
+red = [200, 20, 0]
 green = [0, 215, 100]
-blue = [0, 150, 190]
+blue = [0, 120, 190]
 
 # Font
 if not os.path.isfile('cmunssdc.ttf'):
