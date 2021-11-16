@@ -1,4 +1,5 @@
 import random
+import os
 
 
 class Mancala:
@@ -110,10 +111,34 @@ class Mancala:
             self.random_hole_strategy()
 
 
+def write_lines_to_history_file(lines: list):
+    if os.path.isfile('history_file.txt'):
+        history_file = open('history_file.txt', 'r', errors='ignore')
+        temp_array = []
+        for line in history_file:
+            temp_array.append(line)
+        history_file.close()
+        history_file = open('history_file.txt', 'w', errors='ignore')
+        for line in temp_array:
+            history_file.writelines(line)
+    else:
+        history_file = open('history_file.txt', 'w', errors='ignore')
+    history_file.writelines(lines)
+    history_file.close()
+
+
+def overwrite_history_file(lines: list):
+    history_file = open('history_file.txt', 'w', errors='ignore')
+    history_file.writelines(lines)
+    history_file.close()
+
+
 game = Mancala()
 
+write_lines_to_history_file(['*****************************NEW INSTANCE*****************************\n'])
+
 max_moves = 0
-max_depth = 10000
+max_depth = 1000
 counter = 0
 gaming = True
 while gaming:
@@ -121,11 +146,16 @@ while gaming:
         game.random_hole_strategy()
     if game.move_count > max_moves:
         max_moves = game.move_count
-        print('next highest: ', max_moves)
+        print('current highest: ', max_moves)
+        history_lines = ['Current Highest # of Moves: ' + str(max_moves) + '\n']
+        for move in game.move_history:
+            history_lines.append(str(move[0] + 1) + ', ' + str(move[1] + 1) + '\n')
+        history_lines.append('---------\n')
+        write_lines_to_history_file(history_lines)
         counter = 0
     game.__init__()
-    counter += 1
-    if counter == max_depth:
-        gaming = False
+    # counter += 1
+    # if counter == max_depth:
+    #     gaming = False
 
 print('highest: ', max_moves)
