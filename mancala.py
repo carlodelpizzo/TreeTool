@@ -8,6 +8,7 @@ class Mancala:
         self.max_index = 5
         self.pot = [0, 0]
         self.move_count = 0
+        self.move_count_fine = [0, 0]
         self.hand = 0
         self.current_player = 0
         self.game_over = False
@@ -42,6 +43,7 @@ class Mancala:
     def play_move(self, hole_choice: int):
         hole_choice = hole_choice % (self.max_index + 1)
         self.move_count += 1
+        self.move_count_fine[self.current_player] += 1
         hand_index = hole_choice + 1
         current_side = self.current_player
         if self.board[self.current_player][hole_choice] != 0:
@@ -118,7 +120,7 @@ class Mancala:
         if self.move_is_valid(hole_choice):
             # If move results in 2nd turn
             if (self.max_index + 1) - hole_choice == bead_count % cycle_number:
-                utility += 2
+                utility += 1.5
 
             # Number of beads landing in pot
             if (self.max_index + 1) - hole_choice <= bead_count:
@@ -137,7 +139,7 @@ class Mancala:
             # If move captures opposing beads
             if final_index <= self.max_index:
                 if self.board[self.current_player][final_index] == 0:
-                    utility += self.board[opp_player][self.max_index - final_index]
+                    utility += (self.board[opp_player][self.max_index - final_index]) * 2
 
         return utility
 
@@ -166,8 +168,9 @@ def overwrite_history_file(lines: list):
 
 game = Mancala()
 
-strategies = ['random vs random', 'utility vs random', 'utility vs utility']
-strategy = strategies[1]
+strategies = ['random vs random', 'utility vs random', 'utility vs utility', 'utility vs random rfm',
+              'utility vs utility rfm']
+strategy = strategies[2]
 sim_depth = 70000
 
 score_count = [0, 0]
@@ -203,6 +206,38 @@ while gaming:
             else:
                 game.random_hole_strategy()
 
+        # Utility vs Random with random first move
+        elif strategy == 'utility vs random rfm':
+            if game.move_count_fine[game.current_player] == 0:
+                game.random_hole_strategy()
+            elif game.current_player == 0:
+                best_move = [0, 0]
+                for j in range(0, game.max_index + 1):
+                    ut = game.utility_function(j)
+                    if ut > best_move[1]:
+                        best_move = [j, ut]
+                if best_move[1] == 0:
+                    game.random_hole_strategy()
+                else:
+                    game.play_move(best_move[0])
+            else:
+                game.random_hole_strategy()
+
+        # Utility vs Utility with random first move
+        elif strategy == 'utility vs utility rfm':
+            if game.move_count_fine[game.current_player] == 0:
+                game.random_hole_strategy()
+            else:
+                best_move = [0, 0]
+                for j in range(0, game.max_index + 1):
+                    ut = game.utility_function(j)
+                    if ut > best_move[1]:
+                        best_move = [j, ut]
+                if best_move[1] == 0:
+                    game.random_hole_strategy()
+                else:
+                    game.play_move(best_move[0])
+
         # Random vs Random
         else:
             game.random_hole_strategy()
@@ -230,11 +265,11 @@ while gaming:
         if score_count[0] >= score_count[1]:
             score_count[0] = int((score_count[0] / score_count[1]) * 10000)
             score_count[0] /= 10000
-            score_count[1] = 1
+            score_count[1] = 1.0
         else:
             score_count[1] = int((score_count[1] / score_count[0]) * 10000)
             score_count[1] /= 10000
-            score_count[0] = 1
+            score_count[0] = 1.0
 
         print(temp, 'normalized:', score_count)
         print('win count:', win_count)
