@@ -39,7 +39,7 @@ class Mancala:
                     self.board[other_i][i] = 0
             self.game_over = True
 
-    def current_player_move(self, hole_choice: int):
+    def play_move(self, hole_choice: int):
         hole_choice = hole_choice % (self.max_index + 1)
         self.move_count += 1
         hand_index = hole_choice + 1
@@ -85,7 +85,7 @@ class Mancala:
         no_move_available = True
         for i in range(len(game.board[self.current_player])):
             if self.board[self.current_player][i] != 0:
-                self.current_player_move(i)
+                self.play_move(i)
                 return
         if no_move_available:
             self.current_player = (self.current_player + 1) % 2
@@ -94,7 +94,7 @@ class Mancala:
         no_move_available = True
         for i in reversed(range(len(game.board[self.current_player]))):
             if self.board[self.current_player][i] != 0:
-                self.current_player_move(i)
+                self.play_move(i)
                 return
         if no_move_available:
             self.current_player = (self.current_player + 1) % 2
@@ -102,7 +102,7 @@ class Mancala:
     def random_hole_strategy(self):
         random_hole = random.randint(0, self.max_index)
         if self.move_is_valid(random_hole):
-            self.current_player_move(random_hole)
+            self.play_move(random_hole)
         else:
             self.random_hole_strategy()
 
@@ -166,17 +166,18 @@ def overwrite_history_file(lines: list):
 
 game = Mancala()
 
-cumulative_score = [0, 0]
+strategies = ['random vs random', 'utility vs random', 'utility vs utility']
+strategy = strategies[1]
+sim_depth = 70000
 
-strategy = 'utility random'
-
-sim_depth = 20000
+score_count = [0, 0]
+win_count = [0, 0, 0]
 counter = 0
 gaming = True
 while gaming:
     while not game.game_over:
-        if strategy == 'utility utility':
-            # Both players use utility function
+        # Utility vs Utility
+        if strategy == 'utility vs utility':
             best_move = [0, 0]
             for j in range(0, game.max_index + 1):
                 ut = game.utility_function(j)
@@ -185,10 +186,10 @@ while gaming:
             if best_move[1] == 0:
                 game.random_hole_strategy()
             else:
-                game.current_player_move(best_move[0])
+                game.play_move(best_move[0])
 
-        elif strategy == 'utility random':
-            # Player one uses utility, player 2 uses random
+        # Utility vs Random
+        elif strategy == 'utility vs random':
             if game.current_player == 0:
                 best_move = [0, 0]
                 for j in range(0, game.max_index + 1):
@@ -198,26 +199,43 @@ while gaming:
                 if best_move[1] == 0:
                     game.random_hole_strategy()
                 else:
-                    game.current_player_move(best_move[0])
+                    game.play_move(best_move[0])
             else:
                 game.random_hole_strategy()
 
-    cumulative_score[0] += game.pot[0]
-    cumulative_score[1] += game.pot[1]
+        # Random vs Random
+        else:
+            game.random_hole_strategy()
+
+    score_count[0] += game.pot[0]
+    score_count[1] += game.pot[1]
+
+    if game.pot[0] > game.pot[1]:
+        win_count[0] += 1
+    elif game.pot[1] > game.pot[0]:
+        win_count[1] += 1
+    else:
+        win_count[2] += 1
+
     game.__init__()
 
     counter += 1
     if counter % 1000 == 0:
-        print(counter)
+        print(str(counter) + ' / ' + str(sim_depth))
+
     if counter == sim_depth:
         gaming = False
-        temp = [cumulative_score[0], cumulative_score[1]]
-        if cumulative_score[0] >= cumulative_score[1]:
-            cumulative_score[0] = int((cumulative_score[0] / cumulative_score[1]) * 10000)
-            cumulative_score[0] /= 10000
-            cumulative_score[1] = 1
+
+        temp = [score_count[0], score_count[1]]
+        if score_count[0] >= score_count[1]:
+            score_count[0] = int((score_count[0] / score_count[1]) * 10000)
+            score_count[0] /= 10000
+            score_count[1] = 1
         else:
-            cumulative_score[1] = int((cumulative_score[1] / cumulative_score[0]) * 10000)
-            cumulative_score[1] /= 10000
-            cumulative_score[0] = 1
-        print(temp, 'normalized:', cumulative_score)
+            score_count[1] = int((score_count[1] / score_count[0]) * 10000)
+            score_count[1] /= 10000
+            score_count[0] = 1
+
+        print(temp, 'normalized:', score_count)
+        print('win count:', win_count)
+        print(strategy)
