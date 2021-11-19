@@ -240,6 +240,7 @@ while gaming:
 
         # Random vs Random
         else:
+            strategy = strategies[0]
             game.random_hole_strategy()
 
     score_count[0] += game.pot[0]
