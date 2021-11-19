@@ -114,7 +114,7 @@ class Mancala:
         cycle_number = (((self.max_index + 1) * 2) + 1)
         opp_player = (self.current_player + 1) % 2
         final_index = (hole_choice + bead_count) % cycle_number
-        full_passes = int(bead_count / cycle_number)
+        full_passes = int((bead_count - 1) / cycle_number)
 
         utility = 0
         if self.move_is_valid(hole_choice):
@@ -137,8 +137,8 @@ class Mancala:
                         utility -= 0.5
 
             # If move captures opposing beads
-            if final_index <= self.max_index:
-                if self.board[self.current_player][final_index] == 0:
+            if full_passes == 0 and 0 <= final_index <= self.max_index:
+                if final_index == hole_choice or self.board[self.current_player][final_index] == 0:
                     utility += (self.board[opp_player][self.max_index - final_index]) * 2
 
         return utility
@@ -171,7 +171,7 @@ game = Mancala()
 strategies = ['random vs random', 'utility vs random', 'utility vs utility', 'utility vs random rfm',
               'utility vs utility rfm']
 strategy = strategies[2]
-sim_depth = 70000
+sim_depth = 100000
 
 score_count = [0, 0]
 win_count = [0, 0, 0]
