@@ -106,6 +106,41 @@ class Mancala:
         else:
             self.random_hole_strategy()
 
+    def utility_function(self, hole_choice: int):
+        hole_choice = hole_choice % (self.max_index + 1)
+        bead_count = self.board[self.current_player][hole_choice]
+        cycle_number = (((self.max_index + 1) * 2) + 1)
+        opp_player = (self.current_player + 1) % 2
+        final_index = (hole_choice + bead_count) % cycle_number
+        full_passes = int(bead_count / cycle_number)
+
+        utility = 0
+        if self.move_is_valid(hole_choice):
+            # If move results in 2nd turn
+            if (self.max_index + 1) - hole_choice == bead_count % cycle_number:
+                utility += 2
+
+            # Number of beads landing in pot
+            if (self.max_index + 1) - hole_choice <= bead_count:
+                utility += (1 + int(bead_count / cycle_number))
+
+            # If move ends on opposing players side
+            if final_index >= 7:
+                for i in reversed(range(0, final_index - (self.max_index + 1))):
+                    # If move blocks opposing player from potential 2nd turn
+                    if ((self.max_index + 1) - i) == self.board[opp_player][i] % cycle_number:
+                        utility += 0.5
+                    # If move gives opposing player a potential 2nd turn
+                    elif ((self.max_index + 1) - i) == (self.board[opp_player][i] + full_passes + 1) % cycle_number:
+                        utility -= 0.5
+
+            # If move captures opposing beads
+            if final_index <= self.max_index:
+                if self.board[self.current_player][final_index] == 0:
+                    utility += self.board[opp_player][self.max_index - final_index]
+
+        return utility
+
 
 def write_lines_to_history_file(lines: list):
     if os.path.isfile('history_file.txt'):
@@ -131,33 +166,58 @@ def overwrite_history_file(lines: list):
 
 game = Mancala()
 
-# write_lines_to_history_file(['*****************************NEW INSTANCE*****************************\n'])
+cumulative_score = [0, 0]
 
-max_moves = 0
-max_depth = 1000000
-counter = 1
+strategy = 'utility random'
+
+sim_depth = 20000
+counter = 0
 gaming = True
 while gaming:
     while not game.game_over:
-        game.random_hole_strategy()
+        if strategy == 'utility utility':
+            # Both players use utility function
+            best_move = [0, 0]
+            for j in range(0, game.max_index + 1):
+                ut = game.utility_function(j)
+                if ut > best_move[1]:
+                    best_move = [j, ut]
+            if best_move[1] == 0:
+                game.random_hole_strategy()
+            else:
+                game.current_player_move(best_move[0])
 
-    if game.move_count > max_moves:
-        max_moves = game.move_count
-        print('current highest: ', max_moves)
+        elif strategy == 'utility random':
+            # Player one uses utility, player 2 uses random
+            if game.current_player == 0:
+                best_move = [0, 0]
+                for j in range(0, game.max_index + 1):
+                    ut = game.utility_function(j)
+                    if ut > best_move[1]:
+                        best_move = [j, ut]
+                if best_move[1] == 0:
+                    game.random_hole_strategy()
+                else:
+                    game.current_player_move(best_move[0])
+            else:
+                game.random_hole_strategy()
 
-        # history_lines = ['Current Highest # of Moves: ' + str(max_moves) + '\n']
-        # for move in game.move_history:
-        #     history_lines.append(str(move[0] + 1) + ', ' + str(move[1] + 1) + '\n')
-        # history_lines.append('---------\n')
-        # write_lines_to_history_file(history_lines)
-
+    cumulative_score[0] += game.pot[0]
+    cumulative_score[1] += game.pot[1]
     game.__init__()
 
-    if counter >= max_depth:
-        gaming = False
     counter += 1
-
     if counter % 1000 == 0:
         print(counter)
-
-print('highest: ', max_moves)
+    if counter == sim_depth:
+        gaming = False
+        temp = [cumulative_score[0], cumulative_score[1]]
+        if cumulative_score[0] >= cumulative_score[1]:
+            cumulative_score[0] = int((cumulative_score[0] / cumulative_score[1]) * 10000)
+            cumulative_score[0] /= 10000
+            cumulative_score[1] = 1
+        else:
+            cumulative_score[1] = int((cumulative_score[1] / cumulative_score[0]) * 10000)
+            cumulative_score[1] /= 10000
+            cumulative_score[0] = 1
+        print(temp, 'normalized:', cumulative_score)
