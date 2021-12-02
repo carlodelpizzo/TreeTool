@@ -4,7 +4,7 @@ import os
 
 class Mancala:
     def __init__(self):
-        self.board = [[4, 5, 4, 4, 4, 4], [4, 4, 4, 4, 4, 4]]
+        self.board = [[4, 4, 4, 4, 4, 4], [4, 4, 4, 4, 4, 4]]
         self.max_index = 5
         self.pot = [0, 0]
         self.move_count = 0
@@ -108,6 +108,11 @@ class Mancala:
         else:
             self.random_hole_strategy()
 
+    def heaviest_hole_strategy(self):
+        heaviest = 0
+        for h in range(self.max_index + 1):
+            print(self.board[self.current_player][h])
+
     def utility_function(self, hole_choice: int):
         hole_choice = hole_choice % (self.max_index + 1)
         bead_count = self.board[self.current_player][hole_choice]
@@ -174,7 +179,7 @@ class Mancala:
             # If move captures opposing beads
             if full_passes == 0 and 0 <= final_index <= self.max_index:
                 if final_index == hole_choice or self.board[self.current_player][final_index] == 0:
-                    utility += (self.board[opp_player][self.max_index - final_index]) / 2
+                    utility += 2
 
         return utility
 
@@ -345,7 +350,7 @@ def alt_utility_vs_utility(game: object):
             game.play_move((best_moves[ran][0]))
 
 
-def simulate_games(depth: int, strategy: str):
+def simulate_games(depth: int, strategy: str, show_progress=False):
     game = Mancala()
     score_count = [0, 0]
     win_count = [0, 0, 0]
@@ -412,7 +417,7 @@ def simulate_games(depth: int, strategy: str):
         game.__init__()
 
         counter += 1
-        if counter % 1000 == 0:
+        if show_progress and counter % 1000 == 0:
             print(str(counter) + ' / ' + str(depth))
 
         if counter == depth:
@@ -434,10 +439,15 @@ strategies = ['random vs random', 'utility vs random', 'random vs utility', 'uti
               'alt utility vs random', 'random vs alt utility']
 
 strat = strategies[1]
-sim_depth = 10000
+sim_depth = 1000
 
-output = simulate_games(sim_depth, strategies[1])
+temp = Mancala()
+temp.heaviest_hole_strategy()
 
-print('Score:', output[0], 'Normalized:', output[1])
-print('Win Count:', output[2])
-print(output[3])
+# for s in range(0, len(strategies)):
+#     output = simulate_games(sim_depth, strategies[s])
+#
+#     print(output[3])
+#     print('Score:', output[0], 'Normalized:', output[1])
+#     print('Win Count:', output[2])
+#     print('\n')
