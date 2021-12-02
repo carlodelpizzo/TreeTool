@@ -85,7 +85,7 @@ class Mancala:
 
     def first_hole_strategy(self):
         no_move_available = True
-        for i in range(len(game.board[self.current_player])):
+        for i in range(len(self.board[self.current_player])):
             if self.board[self.current_player][i] != 0:
                 self.play_move(i)
                 return
@@ -94,7 +94,7 @@ class Mancala:
 
     def last_hole_strategy(self):
         no_move_available = True
-        for i in reversed(range(len(game.board[self.current_player]))):
+        for i in reversed(range(len(self.board[self.current_player]))):
             if self.board[self.current_player][i] != 0:
                 self.play_move(i)
                 return
@@ -222,193 +222,222 @@ def overwrite_history_file(lines: list):
     history_file.close()
 
 
-game = Mancala()
+def utility_vs_utility(game: object):
+    if game is None:
+        game = Mancala()
+    best_moves = game.find_highest_utility(game.utility_function)
+    if best_moves[0][1] == 0:
+        game.random_hole_strategy()
+    elif len(best_moves) == 1:
+        game.play_move(best_moves[0][0])
+    else:
+        ran = random.randint(0, len(best_moves) - 1)
+        game.play_move((best_moves[ran][0]))
+
+
+def utility_vs_random(game: object):
+    if game is None:
+        game = Mancala()
+    if game.current_player == 0:
+        best_moves = game.find_highest_utility(game.utility_function)
+        if best_moves[0][1] == 0:
+            game.random_hole_strategy()
+        elif len(best_moves) == 1:
+            game.play_move(best_moves[0][0])
+        else:
+            ran = random.randint(0, len(best_moves) - 1)
+            game.play_move((best_moves[ran][0]))
+    else:
+        game.random_hole_strategy()
+
+
+def random_vs_utility(game: object):
+    if game is None:
+        game = Mancala()
+    if game.current_player == 1:
+        best_moves = game.find_highest_utility(game.utility_function)
+        if best_moves[0][1] == 0:
+            game.random_hole_strategy()
+        elif len(best_moves) == 1:
+            game.play_move(best_moves[0][0])
+        else:
+            ran = random.randint(0, len(best_moves) - 1)
+            game.play_move((best_moves[ran][0]))
+    else:
+        game.random_hole_strategy()
+
+
+def alt_utility_vs_random(game: object):
+    if game is None:
+        game = Mancala()
+    if game.current_player == 0:
+        best_moves = game.find_highest_utility(game.utility_function_alt)
+        if best_moves[0][1] == 0:
+            game.random_hole_strategy()
+        elif len(best_moves) == 1:
+            game.play_move(best_moves[0][0])
+        else:
+            ran = random.randint(0, len(best_moves) - 1)
+            game.play_move((best_moves[ran][0]))
+    else:
+        game.random_hole_strategy()
+
+
+def random_vs_alt_utility(game: object):
+    if game is None:
+        game = Mancala()
+    if game.current_player == 1:
+        best_moves = game.find_highest_utility(game.utility_function_alt)
+        if best_moves[0][1] == 0:
+            game.random_hole_strategy()
+        elif len(best_moves) == 1:
+            game.play_move(best_moves[0][0])
+        else:
+            ran = random.randint(0, len(best_moves) - 1)
+            game.play_move((best_moves[ran][0]))
+    else:
+        game.random_hole_strategy()
+
+
+def utility_vs_alt_utility(game: object):
+    if game is None:
+        game = Mancala()
+    if game.current_player == 0:
+        best_moves = game.find_highest_utility(game.utility_function)
+        if best_moves[0][1] == 0:
+            game.random_hole_strategy()
+        elif len(best_moves) == 1:
+            game.play_move(best_moves[0][0])
+        else:
+            ran = random.randint(0, len(best_moves) - 1)
+            game.play_move((best_moves[ran][0]))
+    else:
+        best_moves = game.find_highest_utility(game.utility_function_alt)
+        if best_moves[0][1] == 0:
+            game.random_hole_strategy()
+        elif len(best_moves) == 1:
+            game.play_move(best_moves[0][0])
+        else:
+            ran = random.randint(0, len(best_moves) - 1)
+            game.play_move((best_moves[ran][0]))
+
+
+def alt_utility_vs_utility(game: object):
+    if game is None:
+        game = Mancala()
+    if game.current_player == 1:
+        best_moves = game.find_highest_utility(game.utility_function)
+        if best_moves[0][1] == 0:
+            game.random_hole_strategy()
+        elif len(best_moves) == 1:
+            game.play_move(best_moves[0][0])
+        else:
+            ran = random.randint(0, len(best_moves) - 1)
+            game.play_move((best_moves[ran][0]))
+    else:
+        best_moves = game.find_highest_utility(game.utility_function_alt)
+        if best_moves[0][1] == 0:
+            game.random_hole_strategy()
+        elif len(best_moves) == 1:
+            game.play_move(best_moves[0][0])
+        else:
+            ran = random.randint(0, len(best_moves) - 1)
+            game.play_move((best_moves[ran][0]))
+
+
+def simulate_games(depth: int, strategy: str):
+    game = Mancala()
+    score_count = [0, 0]
+    win_count = [0, 0, 0]
+    counter = 0
+    while True:
+        while not game.game_over:
+            # Utility vs Utility
+            if strategy == 'utility vs utility':
+                utility_vs_utility(game)
+
+            # Utility vs Random
+            elif strategy == 'utility vs random':
+                utility_vs_random(game)
+
+            # Random vs Utility
+            elif strategy == 'random vs utility':
+                random_vs_utility(game)
+
+            # Alt Utility vs Random
+            elif strategy == 'alt utility vs random':
+                alt_utility_vs_random(game)
+
+            # Random vs Alt Utility
+            elif strategy == 'random vs alt utility':
+                random_vs_alt_utility(game)
+
+            # Utility vs Random with random first move
+            elif strategy == 'utility vs random rfm':
+                if game.move_count_fine[game.current_player] == 0:
+                    game.random_hole_strategy()
+                else:
+                    utility_vs_random(game)
+
+            # Utility vs Utility with random first move
+            elif strategy == 'utility vs utility rfm':
+                if game.move_count_fine[game.current_player] == 0:
+                    game.random_hole_strategy()
+                else:
+                    utility_vs_utility(game)
+
+            # Utility vs Alt Utility
+            elif strategy == 'utility vs alt utility':
+                utility_vs_alt_utility(game)
+
+            # Alt Utility vs Utility
+            elif strategy == 'alt utility vs utility':
+                alt_utility_vs_utility(game)
+
+            # Random vs Random
+            else:
+                strategy = strategies[0]
+                game.random_hole_strategy()
+
+        score_count[0] += game.pot[0]
+        score_count[1] += game.pot[1]
+
+        if game.pot[0] > game.pot[1]:
+            win_count[0] += 1
+        elif game.pot[1] > game.pot[0]:
+            win_count[1] += 1
+        else:
+            win_count[2] += 1
+
+        game.__init__()
+
+        counter += 1
+        if counter % 1000 == 0:
+            print(str(counter) + ' / ' + str(depth))
+
+        if counter == depth:
+            score_norm = [score_count[0], score_count[1]]
+            if score_norm[0] >= score_norm[1]:
+                score_norm[0] = int((score_norm[0] / score_norm[1]) * 10000)
+                score_norm[0] /= 10000
+                score_norm[1] = 1.0
+            else:
+                score_norm[1] = int((score_norm[1] / score_norm[0]) * 10000)
+                score_norm[1] /= 10000
+                score_norm[0] = 1.0
+
+            return [score_count, score_norm, win_count, strategy]
+
 
 strategies = ['random vs random', 'utility vs random', 'random vs utility', 'utility vs utility',
               'utility vs random rfm', 'utility vs utility rfm', 'utility vs alt utility', 'alt utility vs utility',
               'alt utility vs random', 'random vs alt utility']
-strategy = strategies[-3]
-sim_depth = 100000
 
-score_count = [0, 0]
-win_count = [0, 0, 0]
-counter = 0
-gaming = True
-while gaming:
-    while not game.game_over:
-        # Utility vs Utility
-        if strategy == 'utility vs utility':
-            best_moves = game.find_highest_utility(game.utility_function)
-            if best_moves[0][1] == 0:
-                game.random_hole_strategy()
-            elif len(best_moves) == 1:
-                game.play_move(best_moves[0][0])
-            else:
-                ran = random.randint(0, len(best_moves) - 1)
-                game.play_move((best_moves[ran][0]))
+strat = strategies[1]
+sim_depth = 10000
 
-        # Utility vs Random
-        elif strategy == 'utility vs random':
-            if game.current_player == 0:
-                best_moves = game.find_highest_utility(game.utility_function)
-                if best_moves[0][1] == 0:
-                    game.random_hole_strategy()
-                elif len(best_moves) == 1:
-                    game.play_move(best_moves[0][0])
-                else:
-                    ran = random.randint(0, len(best_moves) - 1)
-                    game.play_move((best_moves[ran][0]))
-            else:
-                game.random_hole_strategy()
+output = simulate_games(sim_depth, strategies[1])
 
-        # Random vs Utility
-        elif strategy == 'random vs utility':
-            if game.current_player == 1:
-                best_moves = game.find_highest_utility(game.utility_function)
-                if best_moves[0][1] == 0:
-                    game.random_hole_strategy()
-                elif len(best_moves) == 1:
-                    game.play_move(best_moves[0][0])
-                else:
-                    ran = random.randint(0, len(best_moves) - 1)
-                    game.play_move((best_moves[ran][0]))
-            else:
-                game.random_hole_strategy()
-
-        # Alt Utility vs Random
-        elif strategy == 'alt utility vs random':
-            if game.current_player == 0:
-                best_moves = game.find_highest_utility(game.utility_function_alt)
-                if best_moves[0][1] == 0:
-                    game.random_hole_strategy()
-                elif len(best_moves) == 1:
-                    game.play_move(best_moves[0][0])
-                else:
-                    ran = random.randint(0, len(best_moves) - 1)
-                    game.play_move((best_moves[ran][0]))
-            else:
-                game.random_hole_strategy()
-
-        # Random vs Alt Utility
-        elif strategy == 'random vs alt utility':
-            if game.current_player == 1:
-                best_moves = game.find_highest_utility(game.utility_function_alt)
-                if best_moves[0][1] == 0:
-                    game.random_hole_strategy()
-                elif len(best_moves) == 1:
-                    game.play_move(best_moves[0][0])
-                else:
-                    ran = random.randint(0, len(best_moves) - 1)
-                    game.play_move((best_moves[ran][0]))
-            else:
-                game.random_hole_strategy()
-
-        # Utility vs Random with random first move
-        elif strategy == 'utility vs random rfm':
-            if game.move_count_fine[game.current_player] == 0:
-                game.random_hole_strategy()
-            elif game.current_player == 0:
-                best_moves = game.find_highest_utility(game.utility_function)
-                if best_moves[0][1] == 0:
-                    game.random_hole_strategy()
-                elif len(best_moves) == 1:
-                    game.play_move(best_moves[0][0])
-                else:
-                    ran = random.randint(0, len(best_moves) - 1)
-                    game.play_move((best_moves[ran][0]))
-            else:
-                game.random_hole_strategy()
-
-        # Utility vs Utility with random first move
-        elif strategy == 'utility vs utility rfm':
-            if game.move_count_fine[game.current_player] == 0:
-                game.random_hole_strategy()
-            else:
-                best_moves = game.find_highest_utility(game.utility_function)
-                if best_moves[0][1] == 0:
-                    game.random_hole_strategy()
-                elif len(best_moves) == 1:
-                    game.play_move(best_moves[0][0])
-                else:
-                    ran = random.randint(0, len(best_moves) - 1)
-                    game.play_move((best_moves[ran][0]))
-
-        # Utility vs Alt Utility
-        elif strategy == 'utility vs alt utility':
-            if game.current_player == 0:
-                best_moves = game.find_highest_utility(game.utility_function)
-                if best_moves[0][1] == 0:
-                    game.random_hole_strategy()
-                elif len(best_moves) == 1:
-                    game.play_move(best_moves[0][0])
-                else:
-                    ran = random.randint(0, len(best_moves) - 1)
-                    game.play_move((best_moves[ran][0]))
-            else:
-                best_moves = game.find_highest_utility(game.utility_function_alt)
-                if best_moves[0][1] == 0:
-                    game.random_hole_strategy()
-                elif len(best_moves) == 1:
-                    game.play_move(best_moves[0][0])
-                else:
-                    ran = random.randint(0, len(best_moves) - 1)
-                    game.play_move((best_moves[ran][0]))
-
-        # Alt Utility vs Utility
-        elif strategy == 'alt utility vs utility':
-            if game.current_player == 1:
-                best_moves = game.find_highest_utility(game.utility_function)
-                if best_moves[0][1] == 0:
-                    game.random_hole_strategy()
-                elif len(best_moves) == 1:
-                    game.play_move(best_moves[0][0])
-                else:
-                    ran = random.randint(0, len(best_moves) - 1)
-                    game.play_move((best_moves[ran][0]))
-            else:
-                best_moves = game.find_highest_utility(game.utility_function_alt)
-                if best_moves[0][1] == 0:
-                    game.random_hole_strategy()
-                elif len(best_moves) == 1:
-                    game.play_move(best_moves[0][0])
-                else:
-                    ran = random.randint(0, len(best_moves) - 1)
-                    game.play_move((best_moves[ran][0]))
-
-        # Random vs Random
-        else:
-            strategy = strategies[0]
-            game.random_hole_strategy()
-
-    score_count[0] += game.pot[0]
-    score_count[1] += game.pot[1]
-
-    if game.pot[0] > game.pot[1]:
-        win_count[0] += 1
-    elif game.pot[1] > game.pot[0]:
-        win_count[1] += 1
-    else:
-        win_count[2] += 1
-
-    game.__init__()
-
-    counter += 1
-    if counter % 1000 == 0:
-        print(str(counter) + ' / ' + str(sim_depth))
-
-    if counter == sim_depth:
-        gaming = False
-
-        temp = [score_count[0], score_count[1]]
-        if score_count[0] >= score_count[1]:
-            score_count[0] = int((score_count[0] / score_count[1]) * 10000)
-            score_count[0] /= 10000
-            score_count[1] = 1.0
-        else:
-            score_count[1] = int((score_count[1] / score_count[0]) * 10000)
-            score_count[1] /= 10000
-            score_count[0] = 1.0
-
-        print('Score:', temp, 'Normalized:', score_count)
-        print('Win Count:', win_count)
-        print(strategy)
+print('Score:', output[0], 'Normalized:', output[1])
+print('Win Count:', output[2])
+print(output[3])
