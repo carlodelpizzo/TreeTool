@@ -1,5 +1,4 @@
 import random
-import os
 import itertools
 
 
@@ -176,28 +175,6 @@ class Mancala:
             return [best_ut]
 
 
-def write_lines_to_history_file(lines: list):
-    if os.path.isfile('history_file.txt'):
-        history_file = open('history_file.txt', 'r', errors='ignore')
-        temp_array = []
-        for line in history_file:
-            temp_array.append(line)
-        history_file.close()
-        history_file = open('history_file.txt', 'w', errors='ignore')
-        for line in temp_array:
-            history_file.writelines(line)
-    else:
-        history_file = open('history_file.txt', 'w', errors='ignore')
-    history_file.writelines(lines)
-    history_file.close()
-
-
-def overwrite_history_file(lines: list):
-    history_file = open('history_file.txt', 'w', errors='ignore')
-    history_file.writelines(lines)
-    history_file.close()
-
-
 # Strategies
 def first_hole_strategy(game: object, give_name=False):
     if give_name:
@@ -287,24 +264,7 @@ def alt_utility_strategy(game: object, give_name=False):
         game.play_move((best_moves[ran][0]))
 
 
-# Strategies to be simulated
-strategies = [random_hole_strategy, heaviest_hole_strategy, utility_strategy, alt_utility_strategy]
-
-all_combinations = []
-for strat in itertools.product(strategies, strategies):
-    all_combinations.append(strat)
-
-
-# Simulation functions
-def strat_vs_strat(game: object, strat1, strat2):
-    if game is None:
-        game = Mancala()
-    if game.current_player == 0:
-        strat1(game)
-    else:
-        strat2(game)
-
-
+# Simulation function
 def simulate_games(depth: int, strat1=None, strat2=None, show_progress=False, print_result=True):
     game = Mancala()
 
@@ -321,7 +281,10 @@ def simulate_games(depth: int, strat1=None, strat2=None, show_progress=False, pr
         while not game.game_over:
             # Strat vs Strat
             if strat1 is not None and strat2 is not None:
-                strat_vs_strat(game, strat1, strat2)
+                if game.current_player == 0:
+                    strat1(game)
+                else:
+                    strat2(game)
 
         score_count[0] += game.pot[0]
         score_count[1] += game.pot[1]
@@ -359,10 +322,15 @@ def simulate_games(depth: int, strat1=None, strat2=None, show_progress=False, pr
 
 
 sim_depth = 1000
-
-# simulate_games(sim_depth, strat1=utility_strategy, strat2=random_hole_strategy)
+strategies = [random_hole_strategy, heaviest_hole_strategy, utility_strategy, alt_utility_strategy]
 
 sim_all_strategies = True
 if sim_all_strategies:
+    all_combinations = []
+    for strat in itertools.product(strategies, strategies):
+        all_combinations.append(strat)
+
     for s in all_combinations:
         simulate_games(sim_depth, strat1=s[0], strat2=s[1])
+else:
+    simulate_games(sim_depth, strat1=utility_strategy, strat2=random_hole_strategy)
