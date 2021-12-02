@@ -1,11 +1,12 @@
 import random
 import os
+import itertools
 
 
 class Mancala:
     def __init__(self):
         self.board = [[4, 4, 4, 4, 4, 4], [4, 4, 4, 4, 4, 4]]
-        self.max_index = 5
+        self.max_index = len(self.board[0]) - 1
         self.pot = [0, 0]
         self.move_count = 0
         self.move_count_fine = [0, 0]
@@ -82,36 +83,6 @@ class Mancala:
             pass
         else:
             self.current_player = (self.current_player + 1) % 2
-
-    def first_hole_strategy(self):
-        no_move_available = True
-        for i in range(len(self.board[self.current_player])):
-            if self.board[self.current_player][i] != 0:
-                self.play_move(i)
-                return
-        if no_move_available:
-            self.current_player = (self.current_player + 1) % 2
-
-    def last_hole_strategy(self):
-        no_move_available = True
-        for i in reversed(range(len(self.board[self.current_player]))):
-            if self.board[self.current_player][i] != 0:
-                self.play_move(i)
-                return
-        if no_move_available:
-            self.current_player = (self.current_player + 1) % 2
-
-    def random_hole_strategy(self):
-        random_hole = random.randint(0, self.max_index)
-        if self.move_is_valid(random_hole):
-            self.play_move(random_hole)
-        else:
-            self.random_hole_strategy()
-
-    def heaviest_hole_strategy(self):
-        heaviest = 0
-        for h in range(self.max_index + 1):
-            print(self.board[self.current_player][h])
 
     def utility_function(self, hole_choice: int):
         hole_choice = hole_choice % (self.max_index + 1)
@@ -227,12 +198,73 @@ def overwrite_history_file(lines: list):
     history_file.close()
 
 
-def utility_vs_utility(game: object):
+# Strategies
+def first_hole_strategy(game: object, give_name=False):
+    if give_name:
+        return 'first hole'
+    if game is None:
+        game = Mancala()
+    no_move_available = True
+    for i in range(len(game.board[game.current_player])):
+        if game.board[game.current_player][i] != 0:
+            game.play_move(i)
+            return
+    if no_move_available:
+        game.current_player = (game.current_player + 1) % 2
+
+
+def last_hole_strategy(game: object, give_name=False):
+    if give_name:
+        return 'last hole'
+    if game is None:
+        game = Mancala()
+    no_move_available = True
+    for i in reversed(range(len(game.board[game.current_player]))):
+        if game.board[game.current_player][i] != 0:
+            game.play_move(i)
+            return
+    if no_move_available:
+        game.current_player = (game.current_player + 1) % 2
+
+
+def random_hole_strategy(game: object, give_name=False):
+    if give_name:
+        return 'random hole'
+    if game is None:
+        game = Mancala()
+    random_hole = random.randint(0, game.max_index)
+    if game.move_is_valid(random_hole):
+        game.play_move(random_hole)
+    else:
+        random_hole_strategy(game)
+
+
+def heaviest_hole_strategy(game: object, prefer_closest=True, give_name=False):
+    if give_name:
+        return 'heaviest hole'
+    if game is None:
+        game = Mancala()
+    if not prefer_closest:
+        heaviest = 0
+        for h in range(game.max_index + 1):
+            if game.board[game.current_player][h] > game.board[game.current_player][heaviest]:
+                heaviest = h
+    else:
+        heaviest = game.max_index
+        for h in reversed(range(game.max_index + 1)):
+            if game.board[game.current_player][h] > game.board[game.current_player][heaviest]:
+                heaviest = h
+    game.play_move(heaviest)
+
+
+def utility_strategy(game: object, give_name=False):
+    if give_name:
+        return 'utility'
     if game is None:
         game = Mancala()
     best_moves = game.find_highest_utility(game.utility_function)
     if best_moves[0][1] == 0:
-        game.random_hole_strategy()
+        random_hole_strategy(game)
     elif len(best_moves) == 1:
         game.play_move(best_moves[0][0])
     else:
@@ -240,169 +272,56 @@ def utility_vs_utility(game: object):
         game.play_move((best_moves[ran][0]))
 
 
-def utility_vs_random(game: object):
+def alt_utility_strategy(game: object, give_name=False):
+    if give_name:
+        return 'alt utility'
+    if game is None:
+        game = Mancala()
+    best_moves = game.find_highest_utility(game.utility_function)
+    if best_moves[0][1] == 0:
+        random_hole_strategy(game)
+    elif len(best_moves) == 1:
+        game.play_move(best_moves[0][0])
+    else:
+        ran = random.randint(0, len(best_moves) - 1)
+        game.play_move((best_moves[ran][0]))
+
+
+# Strategies to be simulated
+strategies = [random_hole_strategy, heaviest_hole_strategy, utility_strategy, alt_utility_strategy]
+
+all_combinations = []
+for strat in itertools.product(strategies, strategies):
+    all_combinations.append(strat)
+
+
+# Simulation functions
+def strat_vs_strat(game: object, strat1, strat2):
     if game is None:
         game = Mancala()
     if game.current_player == 0:
-        best_moves = game.find_highest_utility(game.utility_function)
-        if best_moves[0][1] == 0:
-            game.random_hole_strategy()
-        elif len(best_moves) == 1:
-            game.play_move(best_moves[0][0])
-        else:
-            ran = random.randint(0, len(best_moves) - 1)
-            game.play_move((best_moves[ran][0]))
+        strat1(game)
     else:
-        game.random_hole_strategy()
+        strat2(game)
 
 
-def random_vs_utility(game: object):
-    if game is None:
-        game = Mancala()
-    if game.current_player == 1:
-        best_moves = game.find_highest_utility(game.utility_function)
-        if best_moves[0][1] == 0:
-            game.random_hole_strategy()
-        elif len(best_moves) == 1:
-            game.play_move(best_moves[0][0])
-        else:
-            ran = random.randint(0, len(best_moves) - 1)
-            game.play_move((best_moves[ran][0]))
-    else:
-        game.random_hole_strategy()
-
-
-def alt_utility_vs_random(game: object):
-    if game is None:
-        game = Mancala()
-    if game.current_player == 0:
-        best_moves = game.find_highest_utility(game.utility_function_alt)
-        if best_moves[0][1] == 0:
-            game.random_hole_strategy()
-        elif len(best_moves) == 1:
-            game.play_move(best_moves[0][0])
-        else:
-            ran = random.randint(0, len(best_moves) - 1)
-            game.play_move((best_moves[ran][0]))
-    else:
-        game.random_hole_strategy()
-
-
-def random_vs_alt_utility(game: object):
-    if game is None:
-        game = Mancala()
-    if game.current_player == 1:
-        best_moves = game.find_highest_utility(game.utility_function_alt)
-        if best_moves[0][1] == 0:
-            game.random_hole_strategy()
-        elif len(best_moves) == 1:
-            game.play_move(best_moves[0][0])
-        else:
-            ran = random.randint(0, len(best_moves) - 1)
-            game.play_move((best_moves[ran][0]))
-    else:
-        game.random_hole_strategy()
-
-
-def utility_vs_alt_utility(game: object):
-    if game is None:
-        game = Mancala()
-    if game.current_player == 0:
-        best_moves = game.find_highest_utility(game.utility_function)
-        if best_moves[0][1] == 0:
-            game.random_hole_strategy()
-        elif len(best_moves) == 1:
-            game.play_move(best_moves[0][0])
-        else:
-            ran = random.randint(0, len(best_moves) - 1)
-            game.play_move((best_moves[ran][0]))
-    else:
-        best_moves = game.find_highest_utility(game.utility_function_alt)
-        if best_moves[0][1] == 0:
-            game.random_hole_strategy()
-        elif len(best_moves) == 1:
-            game.play_move(best_moves[0][0])
-        else:
-            ran = random.randint(0, len(best_moves) - 1)
-            game.play_move((best_moves[ran][0]))
-
-
-def alt_utility_vs_utility(game: object):
-    if game is None:
-        game = Mancala()
-    if game.current_player == 1:
-        best_moves = game.find_highest_utility(game.utility_function)
-        if best_moves[0][1] == 0:
-            game.random_hole_strategy()
-        elif len(best_moves) == 1:
-            game.play_move(best_moves[0][0])
-        else:
-            ran = random.randint(0, len(best_moves) - 1)
-            game.play_move((best_moves[ran][0]))
-    else:
-        best_moves = game.find_highest_utility(game.utility_function_alt)
-        if best_moves[0][1] == 0:
-            game.random_hole_strategy()
-        elif len(best_moves) == 1:
-            game.play_move(best_moves[0][0])
-        else:
-            ran = random.randint(0, len(best_moves) - 1)
-            game.play_move((best_moves[ran][0]))
-
-
-def simulate_games(depth: int, strategy: str, show_progress=False):
+def simulate_games(depth: int, strat1=None, strat2=None, show_progress=False, print_result=True):
     game = Mancala()
+
+    strategy = ''
+    if strat1 is not None and strat2 is not None:
+        strat1_name = strat1(game, give_name=True)
+        strat2_name = strat2(game, give_name=True)
+        strategy = strat1_name + ' vs ' + strat2_name
+
     score_count = [0, 0]
     win_count = [0, 0, 0]
     counter = 0
     while True:
         while not game.game_over:
-            # Utility vs Utility
-            if strategy == 'utility vs utility':
-                utility_vs_utility(game)
-
-            # Utility vs Random
-            elif strategy == 'utility vs random':
-                utility_vs_random(game)
-
-            # Random vs Utility
-            elif strategy == 'random vs utility':
-                random_vs_utility(game)
-
-            # Alt Utility vs Random
-            elif strategy == 'alt utility vs random':
-                alt_utility_vs_random(game)
-
-            # Random vs Alt Utility
-            elif strategy == 'random vs alt utility':
-                random_vs_alt_utility(game)
-
-            # Utility vs Random with random first move
-            elif strategy == 'utility vs random rfm':
-                if game.move_count_fine[game.current_player] == 0:
-                    game.random_hole_strategy()
-                else:
-                    utility_vs_random(game)
-
-            # Utility vs Utility with random first move
-            elif strategy == 'utility vs utility rfm':
-                if game.move_count_fine[game.current_player] == 0:
-                    game.random_hole_strategy()
-                else:
-                    utility_vs_utility(game)
-
-            # Utility vs Alt Utility
-            elif strategy == 'utility vs alt utility':
-                utility_vs_alt_utility(game)
-
-            # Alt Utility vs Utility
-            elif strategy == 'alt utility vs utility':
-                alt_utility_vs_utility(game)
-
-            # Random vs Random
-            else:
-                strategy = strategies[0]
-                game.random_hole_strategy()
+            # Strat vs Strat
+            if strat1 is not None and strat2 is not None:
+                strat_vs_strat(game, strat1, strat2)
 
         score_count[0] += game.pot[0]
         score_count[1] += game.pot[1]
@@ -431,23 +350,19 @@ def simulate_games(depth: int, strategy: str, show_progress=False):
                 score_norm[1] /= 10000
                 score_norm[0] = 1.0
 
+            if print_result:
+                print(strategy)
+                print('Score:', score_count, 'Normalized:', score_norm)
+                print('Win Count:', win_count)
+                print('\n')
             return [score_count, score_norm, win_count, strategy]
 
 
-strategies = ['random vs random', 'utility vs random', 'random vs utility', 'utility vs utility',
-              'utility vs random rfm', 'utility vs utility rfm', 'utility vs alt utility', 'alt utility vs utility',
-              'alt utility vs random', 'random vs alt utility']
-
-strat = strategies[1]
 sim_depth = 1000
 
-temp = Mancala()
-temp.heaviest_hole_strategy()
+# simulate_games(sim_depth, strat1=utility_strategy, strat2=random_hole_strategy)
 
-# for s in range(0, len(strategies)):
-#     output = simulate_games(sim_depth, strategies[s])
-#
-#     print(output[3])
-#     print('Score:', output[0], 'Normalized:', output[1])
-#     print('Win Count:', output[2])
-#     print('\n')
+sim_all_strategies = True
+if sim_all_strategies:
+    for s in all_combinations:
+        simulate_games(sim_depth, strat1=s[0], strat2=s[1])
