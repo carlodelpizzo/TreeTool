@@ -18,7 +18,7 @@ screen_height = 600
 screen = pygame.display.set_mode((screen_width, screen_height), RESIZABLE)
 
 # Title
-pygame.display.set_caption('Decision Tree Tool')
+pygame.display.set_caption('Map Tool')
 
 # Colors
 black = [0, 0, 0]
