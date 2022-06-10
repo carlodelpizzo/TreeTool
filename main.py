@@ -67,8 +67,8 @@ class Node:
                 ran += alpha_numeric[random.randint(0, len(alpha_numeric) - 1)]
             node_id = ran
         self.id = node_id
-        self.x = x_pos + tree.view_offset[0]
-        self.y = y_pos + tree.view_offset[1]
+        self.x = x_pos + graph.view_offset[0]
+        self.y = y_pos + graph.view_offset[1]
         self.view_x = x_pos
         self.view_y = y_pos
         self.radius = radius
@@ -95,15 +95,15 @@ class Node:
 
     def update_pos(self, pos: tuple):
         if self.held:
-            self.x = pos[0] + self.held_offset[0] + tree.view_offset[0]
-            self.y = pos[1] + self.held_offset[1] + tree.view_offset[1]
+            self.x = pos[0] + self.held_offset[0] + graph.view_offset[0]
+            self.y = pos[1] + self.held_offset[1] + graph.view_offset[1]
         else:
             self.view_x = pos[0]
             self.view_y = pos[1]
 
     def refresh_view_pos(self):
-        self.view_x = self.x - tree.view_offset[0]
-        self.view_y = self.y - tree.view_offset[1]
+        self.view_x = self.x - graph.view_offset[0]
+        self.view_y = self.y - graph.view_offset[1]
 
     def draw(self):
         if self.sourced:
@@ -213,7 +213,7 @@ class Edge:
         return False
 
 
-class Tree:
+class Graph:
     def __init__(self):
         self.nodes = []
         self.edges = []
@@ -242,50 +242,50 @@ class Tree:
         for edge in self.edges:
             edge.draw_label()
 
-        if len(tree.nodes) < 3:
-            if len(tree.nodes) == 0:
+        if len(graph.nodes) < 3:
+            if len(graph.nodes) == 0:
                 temp_label = Label(0, 0, 'Double Click to Create New Node', font_size=30)
-                temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2)) + tree.menu.width
+                temp_label.x = int(((screen_width - graph.menu.width) / 2) - (temp_label.width / 2)) + graph.menu.width
                 temp_label.y = int((screen_height / 2) - (temp_label.height / 2))
                 temp_label.draw()
-            elif len(tree.nodes) == 1:
-                if len(tree.edges) == 0:
-                    if not tree.nodes[0].draw_edge:
+            elif len(graph.nodes) == 1:
+                if len(graph.edges) == 0:
+                    if not graph.nodes[0].draw_edge:
                         temp_label = Label(0, 0, 'Right Click Node to Create Edge', font_size=30)
-                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
-                        temp_label.x += tree.menu.width
+                        temp_label.x = int(((screen_width - graph.menu.width) / 2) - (temp_label.width / 2))
+                        temp_label.x += graph.menu.width
                         temp_label.y = int(screen_height - temp_label.height - 5)
                         temp_label.draw()
-                    elif tree.nodes[0].draw_edge:
+                    elif graph.nodes[0].draw_edge:
                         temp_label = Label(0, 0, 'Move Mouse to Draw Edge', font_size=30)
-                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
-                        temp_label.x += tree.menu.width
+                        temp_label.x = int(((screen_width - graph.menu.width) / 2) - (temp_label.width / 2))
+                        temp_label.x += graph.menu.width
                         temp_label.y = int(screen_height - temp_label.height - 5)
                         temp_label.draw()
-                elif len(tree.edges) == 1:
+                elif len(graph.edges) == 1:
                     temp_label = Label(0, 0, 'Right Click Again to Create New Node', font_size=30)
-                    temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
-                    temp_label.x += tree.menu.width
+                    temp_label.x = int(((screen_width - graph.menu.width) / 2) - (temp_label.width / 2))
+                    temp_label.x += graph.menu.width
                     temp_label.y = int(screen_height - temp_label.height - 5)
                     temp_label.draw()
-            elif len(tree.nodes) == 2:
-                if len(tree.edges) == 0:
-                    if not (tree.nodes[0].draw_edge or tree.nodes[1].draw_edge):
+            elif len(graph.nodes) == 2:
+                if len(graph.edges) == 0:
+                    if not (graph.nodes[0].draw_edge or graph.nodes[1].draw_edge):
                         temp_label = Label(0, 0, 'Right Click Node to Create Edge', font_size=30)
-                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
-                        temp_label.x += tree.menu.width
+                        temp_label.x = int(((screen_width - graph.menu.width) / 2) - (temp_label.width / 2))
+                        temp_label.x += graph.menu.width
                         temp_label.y = int(screen_height - temp_label.height - 5)
                         temp_label.draw()
-                    elif tree.nodes[0].draw_edge or tree.nodes[1].draw_edge:
+                    elif graph.nodes[0].draw_edge or graph.nodes[1].draw_edge:
                         temp_label = Label(0, 0, 'Move Mouse to Draw Edge', font_size=30)
-                        temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
-                        temp_label.x += tree.menu.width
+                        temp_label.x = int(((screen_width - graph.menu.width) / 2) - (temp_label.width / 2))
+                        temp_label.x += graph.menu.width
                         temp_label.y = int(screen_height - temp_label.height - 5)
                         temp_label.draw()
-                elif len(tree.edges) == 1 and (tree.nodes[0].draw_edge or tree.nodes[1].draw_edge) and draw_edge:
+                elif len(graph.edges) == 1 and (graph.nodes[0].draw_edge or graph.nodes[1].draw_edge) and draw_edge:
                     temp_label = Label(0, 0, 'Right Click on Another Node to Connect', font_size=30)
-                    temp_label.x = int(((screen_width - tree.menu.width) / 2) - (temp_label.width / 2))
-                    temp_label.x += tree.menu.width
+                    temp_label.x = int(((screen_width - graph.menu.width) / 2) - (temp_label.width / 2))
+                    temp_label.x += graph.menu.width
                     temp_label.y = int(screen_height - temp_label.height - 5)
                     temp_label.draw()
 
@@ -353,7 +353,7 @@ class Tree:
                         if old_ran in fixture.label_text:
                             fixture.update_label(fixture.label_text.replace(old_ran, ran_name))
 
-                tree.menu.resize()
+                graph.menu.resize()
 
                 self.nodes = []
                 self.edges = []
@@ -434,7 +434,7 @@ class Tree:
                 loaded_file = file_path
                 loaded_name = os.path.basename(file_path)[:-len('.tree')]
 
-                tree.menu.resize()
+                graph.menu.resize()
 
                 self.nodes = []
                 self.edges = []
@@ -680,6 +680,7 @@ class TextBox:
 
         self.selected = selected
         self.cursor_pos = self.text_width + self.x + self.padding + 2
+        self.cursor_offset = 0
         self.blink_counter = 0
         self.text_input_counter = 0
         if clear_on_init:
@@ -710,8 +711,11 @@ class TextBox:
         if self.selected:
             if self.text_input_counter == 0:
                 if -25 <= self.blink_counter <= 0:
-                    pygame.draw.rect(screen, red, (self.cursor_pos + self.label_offset, self.y + self.padding, 3,
-                                                   self.height - self.padding * 2))
+                    self.cursor_pos = int(self.font.render(
+                        self.text[0:(len(self.text) - self.cursor_offset)], True,
+                        self.color).get_rect().width) + self.x + self.padding + 2
+                    pygame.draw.rect(screen, red, (self.cursor_pos + self.label_offset,
+                                                   self.y + self.padding, 3, self.height - self.padding * 2))
                 elif self.blink_counter <= -25:
                     self.blink_counter = 26
                 self.blink_counter -= 1
@@ -720,23 +724,35 @@ class TextBox:
                     self.text_input_counter -= 1
                 else:
                     self.text_input_counter = 0
-                pygame.draw.rect(screen, red, (self.cursor_pos + self.label_offset, self.y + self.padding, 3,
-                                               self.height - self.padding * 2))
+                self.cursor_pos = int(self.font.render(
+                    self.text[0:(len(self.text) - self.cursor_offset)], True,
+                    self.color).get_rect().width) + self.x + self.padding + 2
+                pygame.draw.rect(screen, red, (self.cursor_pos + self.label_offset,
+                                               self.y + self.padding, 3, self.height - self.padding * 2))
 
     def update_text(self, character='', backspace=False):
         if character == 'clear' and backspace:
             self.text = ''
+            self.cursor_offset = 0
         else:
-            self.text += character
+            left_half = len(self.text) - self.cursor_offset
+            temp_text = self.text[:left_half] + character
+            temp_text2 = self.text[left_half:]
+            self.text = temp_text + temp_text2
             self.text_input_counter = int(frame_rate * 1.5)
         self.blink_counter = 0
-        if backspace:
-            self.text = self.text[:-1]
+        if backspace and character != 'clear':
+            left_half = len(self.text) - self.cursor_offset
+            temp_text = self.text[:left_half - 1]
+            temp_text2 = self.text[left_half:]
+            self.text = temp_text + temp_text2
         self.text_width = int(self.font.render(self.text, True, self.color).get_rect().width)
         new_width = self.text_width + self.padding * 2 + 5
         if new_width >= self.min_width:
             self.width = new_width
-        self.cursor_pos = self.text_width + self.x + self.padding + 2
+        self.cursor_pos = int(self.font.render(
+            self.text[0:(len(self.text) - self.cursor_offset)], True,
+            self.color).get_rect().width) + self.x + self.padding + 2
 
     def clear_text(self):
         self.update_text('clear', backspace=True)
@@ -832,7 +848,7 @@ class Menu:
         # /For IDE
 
     def draw(self):
-        tree.menu.refresh_data()
+        graph.menu.refresh_data()
         # pygame.draw.rect(screen, dark_grey, (self.x, self.y, self.width, self.height))
         screen.blit(self.background, (self.x, self.y))
 
@@ -1036,7 +1052,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
     global view_drag
     global orig_mouse_pos
     global view_drag_temp
-    global tree
+    global graph
     global draw_edge
     global double_click
     global double_click_timer
@@ -1072,47 +1088,47 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                             auto_name += 'A'
                         break
 
-            for node__ in tree.nodes:
+            for node__ in graph.nodes:
                 if auto_name == node__.label:
                     create_new_node()
                     return
 
             # Why do I need to do this draw_edge check??
             if not draw_edge:
-                tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
-                                       held=held, label=auto_name))
+                graph.nodes.append(Node(mouse_pos[0] - graph.view_offset[0], mouse_pos[1] - graph.view_offset[1],
+                                        held=held, label=auto_name))
             else:
-                tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label=auto_name))
+                graph.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label=auto_name))
         else:
-            if tree.menu.source is not None and tree.menu.source.type == 'node':
-                if tree.menu.source.label == 'I':
+            if graph.menu.source is not None and graph.menu.source.type == 'node':
+                if graph.menu.source.label == 'I':
                     if not draw_edge:
-                        tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
-                                               held=held, label='II'))
+                        graph.nodes.append(Node(mouse_pos[0] - graph.view_offset[0], mouse_pos[1] - graph.view_offset[1],
+                                                held=held, label='II'))
                     else:
-                        tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='II'))
+                        graph.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='II'))
                 else:
                     if not draw_edge:
-                        tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
-                                               held=held, label='I'))
+                        graph.nodes.append(Node(mouse_pos[0] - graph.view_offset[0], mouse_pos[1] - graph.view_offset[1],
+                                                held=held, label='I'))
                     else:
-                        tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='I'))
+                        graph.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='I'))
             else:
                 if not draw_edge:
-                    tree.nodes.append(Node(mouse_pos[0] - tree.view_offset[0], mouse_pos[1] - tree.view_offset[1],
-                                           held=held, label='I'))
+                    graph.nodes.append(Node(mouse_pos[0] - graph.view_offset[0], mouse_pos[1] - graph.view_offset[1],
+                                            held=held, label='I'))
                 else:
-                    tree.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='I'))
+                    graph.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='I'))
 
         if update_menu:
-            tree.menu.update_source(tree.nodes[-1])
+            graph.menu.update_source(graph.nodes[-1])
 
         if draw_edge:
-            edge__ = tree.edges[-1]
+            edge__ = graph.edges[-1]
             draw_edge = False
             edge__.parent.draw_edge = False
             edge__.held = False
-            edge__.child = tree.nodes[-1]
+            edge__.child = graph.nodes[-1]
             edge__.update_pos()
             if edge__.label == '':
                 edge__.label = edge__.parent.label + '>' + edge__.child.label
@@ -1126,35 +1142,35 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             left_mouse_held = True
 
             menu_item_click = False
-            for item in tree.menu.items:
+            for item in graph.menu.items:
                 if item.type == 'button':
                     if item.check_collide(mouse_pos):
                         menu_item_click = True
                     item.mouse_input(mouse_pos, mouse_buttons, 'down')
-            for fixture in tree.menu.fixtures:
+            for fixture in graph.menu.fixtures:
                 if fixture.type == 'button':
                     if fixture.check_collide(mouse_pos):
                         menu_item_click = True
                     fixture.mouse_input(mouse_pos, mouse_buttons, 'down')
 
-            if mouse_pos[0] > tree.menu.width:
+            if mouse_pos[0] > graph.menu.width:
                 # Left click in selection box
-                if not allow_box_select and tree.selection_box is not None and tree.selection_box.selected and \
-                        tree.selection_box.x_range[0] <= mouse_pos[0] <= tree.selection_box.x_range[1] and \
-                        tree.selection_box.y_range[0] <= mouse_pos[1] <= tree.selection_box.y_range[1]:
-                    tree.selection_box.held = True
-                    tree.selection_box.held_offset = (tree.selection_box.x - mouse_pos[0],
-                                                      tree.selection_box.y - mouse_pos[1])
+                if not allow_box_select and graph.selection_box is not None and graph.selection_box.selected and \
+                        graph.selection_box.x_range[0] <= mouse_pos[0] <= graph.selection_box.x_range[1] and \
+                        graph.selection_box.y_range[0] <= mouse_pos[1] <= graph.selection_box.y_range[1]:
+                    graph.selection_box.held = True
+                    graph.selection_box.held_offset = (graph.selection_box.x - mouse_pos[0],
+                                                       graph.selection_box.y - mouse_pos[1])
                 else:
                     node_click = False
                     # Left click node
-                    for node in tree.nodes:
+                    for node in graph.nodes:
                         if ((node.view_x - mouse_pos[0])**2 + (node.view_y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                             if not draw_edge:
                                 node_click = True
                                 node.held_offset = [node.view_x - mouse_pos[0], node.view_y - mouse_pos[1]]
                                 node.held = True
-                                tree.menu.update_source(node)
+                                graph.menu.update_source(node)
 
                     # Left click background
                     if not node_click:
@@ -1179,14 +1195,14 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
                                 # Select Edge
                                 edge_click = False
-                                for edge in tree.edges:
+                                for edge in graph.edges:
                                     if edge.check_collide(mouse_pos):
-                                        tree.menu.update_source(edge)
+                                        graph.menu.update_source(edge)
                                         edge_click = True
 
                                 # Select menu item
                                 if not edge_click:
-                                    for item in tree.menu.items:
+                                    for item in graph.menu.items:
                                         if item.type == 'textbox':
                                             item.blink_counter = 0
                                             item.selected = False
@@ -1194,29 +1210,29 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                                                 item.selected = True
                         elif allow_box_select and not box_select:
                             box_select = True
-                            if tree.selection_box is None:
-                                tree.selection_box = SelectionBox(mouse_pos[0], mouse_pos[1])
-                        elif allow_box_select and box_select and tree.selection_box is not None:
-                            tree.selection_box = None
-                            tree.selection_box = SelectionBox(mouse_pos[0], mouse_pos[1])
+                            if graph.selection_box is None:
+                                graph.selection_box = SelectionBox(mouse_pos[0], mouse_pos[1])
+                        elif allow_box_select and box_select and graph.selection_box is not None:
+                            graph.selection_box = None
+                            graph.selection_box = SelectionBox(mouse_pos[0], mouse_pos[1])
 
                     if not double_click:
                         double_click = True
                         double_click_timer = int(frame_rate / 3)
             elif not menu_item_click:
-                for item in tree.menu.items:
+                for item in graph.menu.items:
                     if item.type == 'textbox':
                         item.selected = False
 
         # Right click
         if mouse_buttons[2]:
             right_mouse_held = True
-            if mouse_pos[0] > tree.menu.width:
+            if mouse_pos[0] > graph.menu.width:
                 node_click = False
                 # Right click node
-                for node in tree.nodes:
+                for node in graph.nodes:
                     if ((node.view_x - mouse_pos[0])**2 + (node.view_y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
-                        tree.menu.update_source(node)
+                        graph.menu.update_source(node)
                         node_click = True
                         if not draw_edge:
                             if not node.draw_edge:
@@ -1234,12 +1250,12 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         if not mouse_buttons[0]:
             if left_mouse_held:
                 view_drag = False
-                for item in tree.menu.items:
+                for item in graph.menu.items:
                     if item.type == 'button':
                         item.mouse_input(mouse_pos, mouse_buttons, 'up')
                     elif item.type == 'textbox' and item.label != 'Children' and item.check_collide(mouse_pos):
                         item.selected = True
-                for fixture in tree.menu.fixtures:
+                for fixture in graph.menu.fixtures:
                     if fixture.type == 'button':
                         fixture.mouse_input(mouse_pos, mouse_buttons, 'up')
 
@@ -1250,62 +1266,62 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                             else:
                                 fixture.selected = False
 
-                if tree.selection_box is not None and \
-                        view_drag_temp == (0, 0) and len(tree.selection_box.selection) > 0:
-                    if tree.selection_box.x_range[0] <= mouse_pos[0] <= tree.selection_box.x_range[1] and \
-                            tree.selection_box.y_range[0] <= mouse_pos[1] <= tree.selection_box.y_range[1]:
+                if graph.selection_box is not None and \
+                        view_drag_temp == (0, 0) and len(graph.selection_box.selection) > 0:
+                    if graph.selection_box.x_range[0] <= mouse_pos[0] <= graph.selection_box.x_range[1] and \
+                            graph.selection_box.y_range[0] <= mouse_pos[1] <= graph.selection_box.y_range[1]:
                         # Left unclick node
                         node_click = False
-                        for node in tree.nodes:
+                        for node in graph.nodes:
                             if ((node.view_x - mouse_pos[0]) ** 2 + (node.view_y - mouse_pos[1]) ** 2) ** 0.5 <=\
                                     node.radius + 1:
-                                tree.menu.update_source(node)
+                                graph.menu.update_source(node)
                                 node_click = True
                                 break
                         if not node_click:
-                            for edge in tree.edges:
+                            for edge in graph.edges:
                                 if edge.check_collide(mouse_pos):
-                                    tree.menu.update_source(edge)
+                                    graph.menu.update_source(edge)
                                     break
                     else:
-                        for node in tree.selection_box.selection:
+                        for node in graph.selection_box.selection:
                             node.selected = False
-                        tree.selection_box = None
+                        graph.selection_box = None
                         box_select = False
 
-                if tree.selection_box is not None and tree.selection_box.selected:
-                    tree.selection_box.held = False
-                    tree.selection_box.x -= view_drag_temp[0]
-                    tree.selection_box.end_x -= view_drag_temp[0]
-                    tree.selection_box.y -= view_drag_temp[1]
-                    tree.selection_box.end_y -= view_drag_temp[1]
-                    tree.selection_box.update_range()
+                if graph.selection_box is not None and graph.selection_box.selected:
+                    graph.selection_box.held = False
+                    graph.selection_box.x -= view_drag_temp[0]
+                    graph.selection_box.end_x -= view_drag_temp[0]
+                    graph.selection_box.y -= view_drag_temp[1]
+                    graph.selection_box.end_y -= view_drag_temp[1]
+                    graph.selection_box.update_range()
                 view_drag_temp = (0, 0)
 
                 # Select nodes with box
-                if tree.selection_box is not None and not tree.selection_box.selected:
+                if graph.selection_box is not None and not graph.selection_box.selected:
                     selection = []
-                    for node in tree.nodes:
-                        if tree.selection_box.x_range[0] <= node.view_x + node.radius and \
-                                node.view_x - node.radius <= tree.selection_box.x_range[1]:
-                            if tree.selection_box.y_range[0] <= node.view_y + node.radius and \
-                                    node.view_y - node.radius <= tree.selection_box.y_range[1]:
+                    for node in graph.nodes:
+                        if graph.selection_box.x_range[0] <= node.view_x + node.radius and \
+                                node.view_x - node.radius <= graph.selection_box.x_range[1]:
+                            if graph.selection_box.y_range[0] <= node.view_y + node.radius and \
+                                    node.view_y - node.radius <= graph.selection_box.y_range[1]:
                                 selection.append(node)
-                            elif node is not tree.menu.source:
+                            elif node is not graph.menu.source:
                                 node.selected = False
                                 node.held = False
-                        elif node is not tree.menu.source:
+                        elif node is not graph.menu.source:
                             node.selected = False
                             node.held = False
                     if len(selection) > 1:
-                        tree.selection_box.make_selection(selected_object=selection, hold_offset=mouse_pos)
-                    if len(tree.selection_box.selection) == 0:
-                        tree.selection_box = None
+                        graph.selection_box.make_selection(selected_object=selection, hold_offset=mouse_pos)
+                    if len(graph.selection_box.selection) == 0:
+                        graph.selection_box = None
                         box_select = False
                     else:
-                        tree.selection_box.resize_box()
+                        graph.selection_box.resize_box()
                 else:
-                    for node in tree.nodes:
+                    for node in graph.nodes:
                         node.held = False
 
             left_mouse_held = False
@@ -1313,11 +1329,11 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
         # Right unclick
         if not mouse_buttons[2]:
             if right_mouse_held:
-                if mouse_pos[0] > tree.menu.width:
-                    for node in tree.nodes:
+                if mouse_pos[0] > graph.menu.width:
+                    for node in graph.nodes:
                         if ((node.view_x - mouse_pos[0])**2 + (node.view_y - mouse_pos[1])**2)**0.5 <= node.radius + 1:
                             if draw_edge and not node.draw_edge:
-                                edge = tree.edges[-1]
+                                edge = graph.edges[-1]
                                 if node not in edge.parent.children and edge.parent is not node:
                                     draw_edge = False
                                     edge.parent.draw_edge = False
@@ -1335,7 +1351,7 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
 
     elif event_type == '':
         # Button actions
-        for item in tree.menu.items:
+        for item in graph.menu.items:
             if item.type == 'button':
                 if item.run:
                     if item.action == 'node':
@@ -1343,16 +1359,16 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                     item.run = False
                 else:
                     item.mouse_input(mouse_pos, mouse_buttons, '')
-        for fixture in tree.menu.fixtures:
+        for fixture in graph.menu.fixtures:
             if fixture.type == 'button':
                 if fixture.run:
                     if fixture.action == 'save':
-                        tree.save_tree()
+                        graph.save_tree()
                         fixture.run = False
                         fixture.pressed = False
                         fixture.pressed_draw = False
                     elif fixture.action == 'load':
-                        tree.load_tree()
+                        graph.load_tree()
                         fixture.run = False
                         fixture.pressed = False
                         fixture.pressed_draw = False
@@ -1366,55 +1382,55 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
                         label_alt = False
 
         # Nodes / Edges
-        for node in tree.nodes:
+        for node in graph.nodes:
             if node.held:
                 node.update_pos(mouse_pos)
             elif node.draw_edge:
                 if not draw_edge:
                     distance_to_node = ((node.view_x - mouse_pos[0]) ** 2 + (node.view_y - mouse_pos[1]) ** 2) ** 0.5
                     if abs(distance_to_node) >= node.radius + 5:
-                        tree.edges.append(Edge(node.view_x - tree.view_offset[0], node.view_y - tree.view_offset[1],
-                                               0, 0, node))
+                        graph.edges.append(Edge(node.view_x - graph.view_offset[0], node.view_y - graph.view_offset[1],
+                                                0, 0, node))
                         draw_edge = True
                 else:
                     distance_to_node = ((node.view_x - mouse_pos[0]) ** 2 + (node.view_y - mouse_pos[1]) ** 2) ** 0.5
                     if abs(distance_to_node) <= node.radius + 1:
                         draw_edge = False
-                        tree.edges.pop()
+                        graph.edges.pop()
 
             node.refresh_view_pos()
         if draw_edge and not view_drag:
-            tree.edges[-1].update_pos(mouse_pos)
+            graph.edges[-1].update_pos(mouse_pos)
 
         # View drag
         if view_drag:
             x_diff = (orig_mouse_pos[0] - mouse_pos[0]) - view_drag_temp[0]
             y_diff = (orig_mouse_pos[1] - mouse_pos[1]) - view_drag_temp[1]
             if x_diff != 0 or y_diff != 0:
-                tree.view_offset = (tree.view_offset[0] + x_diff, tree.view_offset[1] + y_diff)
+                graph.view_offset = (graph.view_offset[0] + x_diff, graph.view_offset[1] + y_diff)
                 view_drag_temp = (orig_mouse_pos[0] - mouse_pos[0], orig_mouse_pos[1] - mouse_pos[1])
 
         # Box select
-        if tree.selection_box is not None:
-            if not tree.selection_box.selected:
-                tree.selection_box.update_end_pos(mouse_pos)
-            elif tree.selection_box.held:
-                tree.selection_box.update_pos(mouse_pos)
+        if graph.selection_box is not None:
+            if not graph.selection_box.selected:
+                graph.selection_box.update_end_pos(mouse_pos)
+            elif graph.selection_box.held:
+                graph.selection_box.update_pos(mouse_pos)
 
 
 def bullshit_fix():
     index_of_bullshit = 2
-    if loaded_file == '' and ran_name not in tree.menu.fixtures[index_of_bullshit].label_text:
-        tree.menu.fixtures[index_of_bullshit].update_label(ran_name + '.tree')
-        tree.menu.resize()
-    elif loaded_name != '' and loaded_name not in tree.menu.fixtures[index_of_bullshit].label_text:
-        tree.menu.fixtures[index_of_bullshit].update_label(loaded_name + '.tree')
-        tree.menu.resize()
+    if loaded_file == '' and ran_name not in graph.menu.fixtures[index_of_bullshit].label_text:
+        graph.menu.fixtures[index_of_bullshit].update_label(ran_name + '.tree')
+        graph.menu.resize()
+    elif loaded_name != '' and loaded_name not in graph.menu.fixtures[index_of_bullshit].label_text:
+        graph.menu.fixtures[index_of_bullshit].update_label(loaded_name + '.tree')
+        graph.menu.resize()
 
 
 def delete_object(deleted_object=None, undo=False):
     global deleted_objects
-    global tree
+    global graph
 
     if not undo and deleted_object is not None:
         deleted_object.deleted = True
@@ -1422,18 +1438,18 @@ def delete_object(deleted_object=None, undo=False):
         deleted_object.selected = False
         deleted_object.held = False
         deleted_objects.append(deleted_object)
-        if tree.selection_box is not None and deleted_object in tree.selection_box.selection:
-            tree.selection_box.selection.pop(tree.selection_box.selection.index(deleted_object))
+        if graph.selection_box is not None and deleted_object in graph.selection_box.selection:
+            graph.selection_box.selection.pop(graph.selection_box.selection.index(deleted_object))
 
         if deleted_object.type == 'node':
             if len(deleted_object.parents) != 0 or len(deleted_object.children) != 0:
                 pop_list = []
-                for edge_ in reversed(tree.edges):
+                for edge_ in reversed(graph.edges):
                     if edge_.parent == deleted_object or edge_.child == deleted_object:
-                        pop_list.append(tree.edges.index(edge_))
+                        pop_list.append(graph.edges.index(edge_))
                 for index_ in pop_list:
-                    delete_object(deleted_object=tree.edges[index_])
-            tree.nodes.pop(tree.nodes.index(deleted_object))
+                    delete_object(deleted_object=graph.edges[index_])
+            graph.nodes.pop(graph.nodes.index(deleted_object))
         elif deleted_object.type == 'edge':
             # For IDE
             if delete_timer < 0:
@@ -1444,10 +1460,10 @@ def delete_object(deleted_object=None, undo=False):
 
             edge_.parent.children.pop(edge_.parent.children.index(edge_.child))
             edge_.child.parents.pop(edge_.child.parents.index(edge_.parent))
-            tree.edges.pop(tree.edges.index(deleted_object))
+            graph.edges.pop(graph.edges.index(deleted_object))
 
-        if tree.menu.source is not None and tree.menu.source == deleted_object:
-            tree.menu.update_source(None)
+        if graph.menu.source is not None and graph.menu.source == deleted_object:
+            graph.menu.update_source(None)
     elif undo and len(deleted_objects) > 0:
         edges_to_restore = []
         for i in reversed(range(len(deleted_objects))):
@@ -1455,14 +1471,14 @@ def delete_object(deleted_object=None, undo=False):
                 edges_to_restore.append(deleted_objects[i])
             elif deleted_objects[i].type == 'node':
                 deleted_objects[i].deleted = False
-                tree.nodes.append(deleted_objects[i])
+                graph.nodes.append(deleted_objects[i])
                 deleted_objects.pop(deleted_objects.index(deleted_objects[i]))
                 if len(edges_to_restore) > 0:
                     for edge_ in edges_to_restore:
                         edge_.deleted = False
                         edge_.parent.children.append(edge_.child)
                         edge_.child.parents.append(edge_.parent)
-                        tree.edges.append(edge_)
+                        graph.edges.append(edge_)
                         deleted_objects.pop(deleted_objects.index(edge_))
                     edges_to_restore = []
                 break
@@ -1472,11 +1488,11 @@ def delete_object(deleted_object=None, undo=False):
                 edge_.deleted = False
                 edge_.parent.children.append(edge_.child)
                 edge_.child.parents.append(edge_.parent)
-                tree.edges.append(edge_)
+                graph.edges.append(edge_)
                 deleted_objects.pop(deleted_objects.index(edge_))
 
-    if tree.selection_box is not None:
-        tree.selection_box.resize_box()
+    if graph.selection_box is not None:
+        graph.selection_box.resize_box()
 
 
 def debugger(variable: str):
@@ -1487,7 +1503,7 @@ def debugger(variable: str):
         print(debug)
 
 
-tree = Tree()
+graph = Graph()
 deleted_objects = []
 
 # Maybe label these
@@ -1532,7 +1548,7 @@ while running:
 
                 # Save tree
                 if keys[K_s]:
-                    tree.save_tree()
+                    graph.save_tree()
 
                 # Close window shortcut
                 elif keys[K_w]:
@@ -1541,12 +1557,12 @@ while running:
 
                 # Return to original view position
                 elif keys[K_o]:
-                    for node_ in tree.nodes:
+                    for node_ in graph.nodes:
                         node_.view_x = node_.x
                         node_.view_y = node_.y
-                    if tree.selection_box is not None:
-                        tree.selection_box.resize_box()
-                    tree.view_offset = (0, 0)
+                    if graph.selection_box is not None:
+                        graph.selection_box.resize_box()
+                    graph.view_offset = (0, 0)
 
                 elif keys[K_z]:
                     delete_object(undo=True)
@@ -1557,15 +1573,33 @@ while running:
                     delete_item = True
                     delete_timer = int(frame_rate / 2)
                 elif delete_timer > 0:
-                    if tree.menu.source is not None:
-                        delete_object(tree.menu.source)
+                    if graph.menu.source is not None:
+                        delete_object(graph.menu.source)
                     delete_item = False
+
+            elif keys[K_LEFT]:
+                for item in graph.menu.items:
+                    if item.type == 'textbox' and item.selected:
+                        if item.cursor_offset >= len(item.text):
+                            item.cursor_offset = len(item.text)
+                            break
+                        item.cursor_offset += 1
+                        break
+
+            elif keys[K_RIGHT]:
+                for item in graph.menu.items:
+                    if item.type == 'textbox' and item.selected:
+                        if item.cursor_offset <= 0:
+                            item.cursor_offset = 0
+                            break
+                        item.cursor_offset -= 1
+                        break
 
             else:
                 # Send input to Menu textbox
-                for item_ in tree.menu.items:
+                for item_ in graph.menu.items:
                     if item_.type == 'textbox':
-                        if tree.menu.source is not None and item_.selected:
+                        if graph.menu.source is not None and item_.selected:
                             if keys[K_BACKSPACE]:
                                 held_key = 'backspace'
                                 key_hold_counter = int(frame_rate)
@@ -1584,7 +1618,7 @@ while running:
 
                             # update node data
                             if item_.label == 'Label':
-                                tree.menu.source.label = item_.text
+                                graph.menu.source.label = item_.text
 
         # Key up events
         elif event.type == KEYUP:
@@ -1617,25 +1651,25 @@ while running:
             else:
                 scroll_y += -event.y * scroll_boost
                 scroll_x += -event.x * scroll_boost
-            tree.view_offset = (tree.view_offset[0] + scroll_x, tree.view_offset[1] + scroll_y)
+            graph.view_offset = (graph.view_offset[0] + scroll_x, graph.view_offset[1] + scroll_y)
 
         # Resize
         elif event.type == VIDEORESIZE:
             screen_width = event.w
             screen_height = event.h
             screen = pygame.display.set_mode((screen_width, screen_height), RESIZABLE)
-            tree.menu.resize()
+            graph.menu.resize()
 
         # Load file
         elif event.type == DROPFILE:
-            tree.load_tree(from_file=True, file_path=event.file)
+            graph.load_tree(from_file=True, file_path=event.file)
 
     mouse_handler('', pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
     # Timers
     if held_key != '' and key_hold_counter == 0:
         key_hold_counter = int(frame_rate / 30)
-        for item_ in tree.menu.items:
+        for item_ in graph.menu.items:
             if item_.type == 'textbox':
                 if item_.selected:
                     if held_key == 'backspace':
@@ -1644,7 +1678,7 @@ while running:
                         item_.update_text(held_key)
                 # Update source object
                     if item_.label == 'Label':
-                        tree.menu.source.label = item_.text
+                        graph.menu.source.label = item_.text
                     break
     elif key_hold_counter > 0:
         key_hold_counter -= 1
@@ -1668,7 +1702,7 @@ while running:
         scroll_y = int(scroll_y / 2)
 
     bullshit_fix()
-    tree.draw_screen()
+    graph.draw_screen()
 
     clock.tick(frame_rate)
     pygame.display.flip()
