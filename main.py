@@ -6,7 +6,7 @@ import os
 import base64
 from Base64Assets import *
 
-
+# This code is a MESS!!
 debug = []
 pygame.init()
 clock = pygame.time.Clock()
@@ -45,12 +45,12 @@ letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
 capital_letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
                    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 alpha_numeric = []
-for item_ in integers:
-    alpha_numeric.append(item_)
-for item_ in letters:
-    alpha_numeric.append(item_)
-for item_ in capital_letters:
-    alpha_numeric.append(item_)
+for list_item in integers:
+    alpha_numeric.append(list_item)
+for list_item in letters:
+    alpha_numeric.append(list_item)
+for list_item in capital_letters:
+    alpha_numeric.append(list_item)
 
 ran_name = ''
 old_ran = ''
@@ -1103,14 +1103,14 @@ def mouse_handler(event_type: str, mouse_pos: tuple, mouse_buttons: tuple):
             if graph.menu.source is not None and graph.menu.source.type == 'node':
                 if graph.menu.source.label == 'I':
                     if not draw_edge:
-                        graph.nodes.append(Node(mouse_pos[0] - graph.view_offset[0], mouse_pos[1] - graph.view_offset[1],
-                                                held=held, label='II'))
+                        graph.nodes.append(Node(mouse_pos[0] - graph.view_offset[0],
+                                                mouse_pos[1] - graph.view_offset[1], held=held, label='II'))
                     else:
                         graph.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='II'))
                 else:
                     if not draw_edge:
-                        graph.nodes.append(Node(mouse_pos[0] - graph.view_offset[0], mouse_pos[1] - graph.view_offset[1],
-                                                held=held, label='I'))
+                        graph.nodes.append(Node(mouse_pos[0] - graph.view_offset[0],
+                                                mouse_pos[1] - graph.view_offset[1], held=held, label='I'))
                     else:
                         graph.nodes.append(Node(mouse_pos[0], mouse_pos[1], held=held, label='I'))
             else:
@@ -1578,47 +1578,47 @@ while running:
                     delete_item = False
 
             elif keys[K_LEFT]:
-                for item in graph.menu.items:
-                    if item.type == 'textbox' and item.selected:
-                        if item.cursor_offset >= len(item.text):
-                            item.cursor_offset = len(item.text)
+                for menu_item in graph.menu.items:
+                    if menu_item.type == 'textbox' and menu_item.selected:
+                        if menu_item.cursor_offset >= len(menu_item.text):
+                            menu_item.cursor_offset = len(menu_item.text)
                             break
-                        item.cursor_offset += 1
+                        menu_item.cursor_offset += 1
                         break
 
             elif keys[K_RIGHT]:
-                for item in graph.menu.items:
-                    if item.type == 'textbox' and item.selected:
-                        if item.cursor_offset <= 0:
-                            item.cursor_offset = 0
+                for menu_item in graph.menu.items:
+                    if menu_item.type == 'textbox' and menu_item.selected:
+                        if menu_item.cursor_offset <= 0:
+                            menu_item.cursor_offset = 0
                             break
-                        item.cursor_offset -= 1
+                        menu_item.cursor_offset -= 1
                         break
 
             else:
                 # Send input to Menu textbox
-                for item_ in graph.menu.items:
-                    if item_.type == 'textbox':
-                        if graph.menu.source is not None and item_.selected:
+                for list_item in graph.menu.items:
+                    if list_item.type == 'textbox':
+                        if graph.menu.source is not None and list_item.selected:
                             if keys[K_BACKSPACE]:
                                 held_key = 'backspace'
                                 key_hold_counter = int(frame_rate)
-                                item_.update_text(backspace=True)
-                            elif item_.label == 'Children':
+                                list_item.update_text(backspace=True)
+                            elif list_item.label == 'Children':
                                 if event.unicode in integers:
                                     held_key = event.unicode
                                     held_key_event = event
                                     key_hold_counter = int(frame_rate)
-                                    item_.update_text(event.unicode)
+                                    list_item.update_text(event.unicode)
                             else:
                                 held_key = event.unicode
                                 held_key_event = event
                                 key_hold_counter = int(frame_rate)
-                                item_.update_text(event.unicode)
+                                list_item.update_text(event.unicode)
 
                             # update node data
-                            if item_.label == 'Label':
-                                graph.menu.source.label = item_.text
+                            if list_item.label == 'Label':
+                                graph.menu.source.label = list_item.text
 
         # Key up events
         elif event.type == KEYUP:
@@ -1669,16 +1669,16 @@ while running:
     # Timers
     if held_key != '' and key_hold_counter == 0:
         key_hold_counter = int(frame_rate / 30)
-        for item_ in graph.menu.items:
-            if item_.type == 'textbox':
-                if item_.selected:
+        for list_item in graph.menu.items:
+            if list_item.type == 'textbox':
+                if list_item.selected:
                     if held_key == 'backspace':
-                        item_.update_text(backspace=True)
+                        list_item.update_text(backspace=True)
                     else:
-                        item_.update_text(held_key)
+                        list_item.update_text(held_key)
                 # Update source object
-                    if item_.label == 'Label':
-                        graph.menu.source.label = item_.text
+                    if list_item.label == 'Label':
+                        graph.menu.source.label = list_item.text
                     break
     elif key_hold_counter > 0:
         key_hold_counter -= 1
